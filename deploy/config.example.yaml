@@ -1,0 +1,243 @@
+# Sentinel NVR — Example Configuration
+# ===============================================================
+# Copy this file to config.yaml and edit to match your setup.
+# All fields with defaults can be omitted; only cameras and
+# database.url are required.
+# ===============================================================
+
+# ── Database ────────────────────────────────────────────────────
+database:
+  # PostgreSQL connection string. Use pgvector-enabled Postgres for
+  # face recognition. The postgres service in docker-compose.yml
+  # satisfies this requirement.
+  url: "postgresql://sentinel:sentinel@postgres:5432/sentinel?sslmode=disable"
+  # Maximum number of open connections in the pool.
+  max_conns: 10
+
+# ── MQTT ────────────────────────────────────────────────────────
+mqtt:
+  enabled: true
+  host: "mosquitto"      # service name in docker-compose, or IP
+  port: 1883
+  # user: ""
+  # password: ""
+
+  # Topic prefix — set to "sentinel" to keep HA auto-discovery working.
+  topic_prefix: "sentinel"
+  client_id: "sentinel-nvr"
+  reconnect_wait: 5s
+
+# ── Object Detector ─────────────────────────────────────────────
+detector:
+  # type: "onnx"     — YOLOv8/v9 via ONNX Runtime (CPU or CUDA EP)
+  # type: "cpu"      — No-op fallback, recording works but no detection
+  # type: "deepstream" — NVIDIA DeepStream bridge (GPU required)
+  type: "onnx"
+
+  # Enable NVIDIA GPU acceleration via ONNX Runtime CUDA EP.
+  use_gpu: true
+  gpu_device_id: 0
+
+  onnx:
+    # Download a YOLOv8n ONNX model and point here.
+    model_path: "/models/yolov8n.onnx"
+    label_path: "/models/coco.txt"
+    # Minimum confidence to emit a detection.
+    threshold: 0.45
+    # Model input size — must match the exported model.
+    input_width: 640
+    input_height: 640
+
+  # Number of CPU threads for the ONNX intra-op pool.
+  num_threads: 4
+
+# ── Tracked Object Classes ──────────────────────────────────────
+objects:
+  track:
+    - person
+    - car
+    - dog
+    - cat
+    - bicycle
+    - motorcycle
+
+  # Per-class filters. All fields are optional.
+  filters:
+    person:
+      min_score: 0.55    # slightly higher threshold for person
+      min_width: 20      # ignore tiny detections (pixels at detect res)
+      min_height: 40
+    car:
+      min_score: 0.50
+      min_area: 0.001    # fraction of frame
+
+# ── Motion Detection ────────────────────────────────────────────
+motion:
+  enabled: true
+  # Pixel intensity difference that counts as "changed" (0-255).
+  threshold: 25
+  # Background model learning rate (0-1). Lower = slower adaptation.
+  alpha: 0.01
+  # Minimum contiguous area (percent of frame) for motion to pass.
+  contour_area: 10
+  # Frames below this global-change threshold are assumed to be
+  # lightning flashes and ignored.
+  lightning_thresh: 9
+
+# ── Continuous Recording ────────────────────────────────────────
+record:
+  enabled: true
+  # Segment duration in seconds. Shorter = smaller recovery window.
+  segment_duration: 10
+
+  # How long to keep ALL recordings (even segments without events).
+  retain:
+    days: 3
+    # "all"            — keep everything
+    # "motion"         — keep only segments with motion
+    # "active_objects" — keep only segments with detected objects
+    mode: "all"
+
+  # Event clip pre/post capture windows.
+  events:
+    pre_capture: 5     # seconds before object first appears
+    post_capture: 5    # seconds after object disappears
+    retain:
+      days: 14
+      mode: "active_objects"
+
+# ── Snapshots ───────────────────────────────────────────────────
+snapshots:
+  enabled: true
+  # Draw bounding boxes and labels on the saved image.
+  bboxes: true
+  # JPEG quality (1-100).
+  quality: 75
+  # How long to keep snapshot files.
+  retain_days: 14
+
+# ── Storage Paths ───────────────────────────────────────────────
+storage:
+  recordings_dir: "/media/recordings"
+  snapshots_dir: "/media/snapshots"
+  clips_dir: "/media/clips"
+  exports_dir: "/media/exports"
+  tmp_dir: "/tmp/sentinel"
+
+# ── API Server ──────────────────────────────────────────────────
+api:
+  listen: "0.0.0.0:5000"
+
+  # Enable Bearer token auth. All requests must include:
+  #   Authorization: Bearer <api_key>
+  auth_enabled: false
+  # api_key: "change-me-in-production"
+
+  # CORS allowed origins. Use ["*"] for open access (dev only).
+  cors_origins:
+    - "*"
+
+  # TLS (optional — prefer a reverse proxy for TLS termination).
+  # tls:
+  #   enabled: true
+  #   cert_file: "/etc/ssl/sentinel.crt"
+  #   key_file:  "/etc/ssl/sentinel.key"
+
+# ── go2rtc Integration ──────────────────────────────────────────
+go2rtc:
+  # URL to the running go2rtc instance for stream proxying.
+  url: "http://go2rtc:1984"
+
+# ── Log Level ───────────────────────────────────────────────────
+log_level: "info"   # debug | info | warn | error
+
+# ── Face Recognition ────────────────────────────────────────────
+# Requires the pgvector Postgres extension (included in the
+# docker-compose postgres service).
+face_recognition:
+  enabled: false
+  # model_path: "/models/arcface_r100.onnx"
+  threshold: 0.60
+  min_face_size: 20
+
+# ──────────────────────────────────────────────────────────────────
+# CAMERAS
+# ──────────────────────────────────────────────────────────────────
+# Each key under cameras: is the camera name used throughout Sentinel
+# and in MQTT topics / API responses.
+
+cameras:
+  # ── Example 1: Reolink RTSP ──────────────────────────────────
+  reolink_front:
+    ffmpeg:
+      inputs:
+        - path: "rtsp://admin:password@192.168.1.100:554/h264Preview_01_main"
+          roles:
+            - detect
+            - record
+
+      # Optional: hardware-accelerated decode (NVIDIA).
+      # hwaccel: "cuda"
+      # hwaccel_device: "0"
+
+    detect:
+      enabled: true
+      width: 1280
+      height: 720
+      fps: 5
+      max_disappeared: 5
+
+    # Per-camera zone — only alert on person in driveway region.
+    zones:
+      driveway:
+        # Normalised [0,1] polygon vertices: x1,y1,x2,y2,x3,y3,...
+        coordinates: "0.0,0.5,1.0,0.5,1.0,1.0,0.0,1.0"
+        objects:
+          - person
+        inertia: 3
+
+    # Per-camera overrides (optional — inherits globals if omitted).
+    # record:
+    #   retain:
+    #     days: 7
+    # snapshots:
+    #   quality: 90
+
+  # ── Example 2: Eufy via go2rtc ───────────────────────────────
+  eufy_backyard:
+    ffmpeg:
+      inputs:
+        # go2rtc exposes Eufy streams as RTSP.
+        - path: "rtsp://go2rtc:8554/eufy_backyard"
+          roles:
+            - detect
+            - record
+
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 5
+
+  # ── Example 3: Generic ONVIF (static IP) ─────────────────────
+  garage:
+    ffmpeg:
+      inputs:
+        - path: "rtsp://liquid:CHANGE_ME@192.168.1.101:554/stream1"
+          roles:
+            - detect
+        - path: "rtsp://liquid:CHANGE_ME@192.168.1.101:554/stream2"
+          roles:
+            - record
+
+    detect:
+      enabled: true
+      width: 640
+      height: 480
+      fps: 5
+
+    # ONVIF PTZ control (future feature).
+    onvif_host: "192.168.1.101"
+    onvif_port: 80
+    onvif_user: "liquid"
+    onvif_pass: "CHANGE_ME"

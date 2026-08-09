@@ -1,0 +1,118 @@
+---
+# Sentinel NVR — Production Docker Compose
+# =========================================
+# Quick start:
+#   cp deploy/config.example.yaml config.yaml
+#   # Edit config.yaml
+#   docker compose -f deploy/docker-compose.yml up -d
+
+version: "3.9"
+
+services:
+
+  # ── Sentinel NVR ────────────────────────────────────────────────
+  sentinel:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: sentinel
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    ports:
+      - "5000:5000"    # HTTP API + embedded UI
+    volumes:
+      - ./config.yaml:/etc/sentinel/config.yaml:ro
+      # Host media dirs → the container paths used in config.yaml (storage.*_dir).
+      # These MUST match config.yaml's storage dirs (/recordings, /snapshots, ...).
+      - /media/sentinel/recordings:/recordings
+      - /media/sentinel/snapshots:/snapshots
+      - /media/sentinel/clips:/clips
+      - /media/sentinel/exports:/exports
+      - /tmp/sentinel:/tmp/sentinel
+      - /media/sentinel/models:/models:ro    # ONNX model files
+    environment:
+      - TZ=America/Denver
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── PostgreSQL with pgvector ────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sentinel-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"    # exposed only on loopback
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ── go2rtc — stream proxy ────────────────────────────────────────
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: sentinel-go2rtc
+    restart: unless-stopped
+    network_mode: host          # required for mDNS/ONVIF discovery
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ── Mosquitto MQTT broker ────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: sentinel-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"    # MQTT
+      - "9001:9001"    # WebSocket
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  postgres_data:
+  mosquitto_data:
+  mosquitto_log:

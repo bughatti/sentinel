@@ -1,0 +1,46 @@
+# Binaries
+sentinel
+sentinel-linux-amd64
+sentinel-linux-arm64
+*.exe
+
+# Go build artifacts
+/vendor/
+
+# Config (may contain credentials)
+config.yaml
+config.yml
+
+# Media files
+/media/
+/tmp/
+
+# Models (large binary files — store separately)
+/deploy/models/
+*.onnx
+*.engine
+*.pt
+
+# Docker volumes
+postgres_data/
+mosquitto_data/
+mosquitto_log/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test artifacts
+coverage.out
+*.test
+
+# OS
+.DS_Store
+Thumbs.db
+
+# deps / build artifacts (added 2026-08-08)
+node_modules/
+/web/dist/
+deploy/go2rtc.yaml

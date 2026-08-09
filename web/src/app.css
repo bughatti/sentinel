@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1e1e1e;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-surface;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent hover:bg-accent-hover text-white;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-surface-3 text-gray-300 hover:text-white border border-surface-3 hover:border-surface-4;
+  }
+
+  .card {
+    @apply bg-surface-2 rounded-xl border border-surface-3 overflow-hidden;
+  }
+
+  .input {
+    @apply bg-surface-3 border border-surface-4 rounded-md px-3 py-1.5 text-sm text-gray-100 placeholder-gray-500
+           focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors duration-150;
+  }
+
+  .select {
+    @apply input appearance-none cursor-pointer;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide;
+  }
+}
+
+/* Video player overrides */
+video {
+  max-width: 100%;
+}
+
+/* Date input dark-mode fix */
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
