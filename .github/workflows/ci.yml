@@ -170,6 +170,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A 7 GB CUDA image does not fit beside the runner's preinstalled
+      # toolchains. Reclaim ~20 GB before building, or the runner is killed
+      # mid-build and never even uploads its logs.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo docker image prune -af || true
+          df -h /
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -202,4 +211,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # mode=min: a full export of this image blows past the 10 GB
+          # Actions cache limit and costs more time than it saves.
+          cache-to: type=gha,mode=min
