@@ -29,7 +29,12 @@ func buildDetector(cfg *config.Config) (det.Detector, error) {
 			cfg.Detector.BatchSize,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("onnx detector: %w", err)
+			// A missing or unreadable model must not take the recorder down
+			// with it. Losing detection is bad; losing the footage as well is
+			// far worse, so fall back to recording-only and say so loudly.
+			slog.Error("detector: onnx unavailable, continuing in recording-only mode — no object detection",
+				"model", cfg.Detector.ONNX.ModelPath, "err", err)
+			return cpudet.New(), nil
 		}
 		slog.Info("detector: onnx loaded", "model", cfg.Detector.ONNX.ModelPath)
 		return d, nil

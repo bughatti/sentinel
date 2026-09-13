@@ -14,6 +14,9 @@ Sentinel trades Python for Go and adds first-class PostgreSQL persistence, plugg
 Honest state of things, so you can judge whether to run it:
 
 - **In daily use on one deployment**, eight cameras with GPU detection, running continuously.
+- **A missing or unreadable model degrades to recording-only.** Cameras keep
+  recording and the dashboard keeps working; only detection stops, with an
+  error in the log naming the file.
 - **MQTT coverage is partial.** The REST API works, and `<prefix>/events` and `<prefix>/available` are published. Stats and per-camera motion or object-count topics are not published yet.
 - **Test coverage is partial.** Configuration loading and validation, credential redaction in logs, MQTT topic construction and event payload mapping, and API authentication are covered. The detection pipeline, storage and recorder are not. Contributions welcome.
 - **Verified on NVIDIA GPUs and CPU decoding.** The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
@@ -66,7 +69,10 @@ they are.
 
 ### 2. Add a detection model
 
-Sentinel will start without one, but nothing will be detected. See
+Without a model Sentinel still starts and still records, but runs in
+**recording-only mode** with no object detection, and logs an error naming the
+file it could not load. Footage is never sacrificed for a configuration
+mistake. To get detection, see
 [Object Detection Models](#object-detection-models) below, then come back.
 
 ### 2b. Start with Docker Compose
