@@ -15,7 +15,7 @@ Honest state of things, so you can judge whether to run it:
 
 - **In daily use on one deployment**, eight cameras with GPU detection, running continuously.
 - **MQTT coverage is partial.** The REST API works, and `<prefix>/events` and `<prefix>/available` are published. Stats and per-camera motion or object-count topics are not published yet.
-- **Test coverage is thin.** The credential redaction and configuration loading paths are covered; most of the pipeline is not. Contributions welcome.
+- **Test coverage is partial.** Configuration loading and validation, credential redaction in logs, MQTT topic construction and event payload mapping, and API authentication are covered. The detection pipeline, storage and recorder are not. Contributions welcome.
 - **Verified on NVIDIA GPUs and CPU decoding.** The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
 
 ---
@@ -29,7 +29,7 @@ Honest state of things, so you can judge whether to run it:
 | Storage | PostgreSQL + pgvector |
 | Face recognition | Built-in (ArcFace + pgvector) |
 | API | REST + MQTT |
-| Home Assistant integration | Drop-in (same topics + API) |
+| Home Assistant integration | MQTT event stream + REST API |
 | Config hot-reload | Yes (fsnotify debounce) |
 | Multi-camera batching | Yes (dynamic batch assembly) |
 | Recording format | MP4 segments (HLS-compatible) |

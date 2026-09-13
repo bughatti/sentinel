@@ -81,6 +81,34 @@ jobs:
           file: ./coverage.out
 
   # ── Build (linux/amd64) ──────────────────────────────────────────
+  ui:
+    name: Web UI is reproducible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the UI from source
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      # vite writes straight into internal/api/webdist, which is the copy the
+      # Go binary embeds. If a change to web/src was not rebuilt and committed,
+      # the shipped UI silently ignores it — so fail loudly here instead.
+      - name: The committed UI must match its source
+        run: |
+          if ! git diff --exit-code -- internal/api/webdist; then
+            echo "::error::internal/api/webdist is stale. Run 'npm run build' in web/ and commit the result."
+            exit 1
+          fi
+
   build-amd64:
     name: Build linux/amd64
     runs-on: ubuntu-latest
