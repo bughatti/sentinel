@@ -4,6 +4,7 @@ package mqtt
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -39,6 +40,79 @@ func (t *Topics) CameraState(cam string) string {
 }
 func (t *Topics) CameraObjectEnter(cam, label string) string {
 	return fmt.Sprintf("%s/%s/%s/snapshot", t.prefix(), cam, label)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Publish selection
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Publish kind names, as written in the config file's mqtt.publish list.
+const (
+	KindEvents       = "events"
+	KindAvailability = "availability"
+	KindMotion       = "motion"
+	KindStats        = "stats"
+)
+
+// PublishKinds lists every valid entry for mqtt.publish, for validation and
+// for error messages that tell the operator what they may have meant.
+var PublishKinds = []string{KindEvents, KindAvailability, KindMotion, KindStats}
+
+// PublishSet is the set of topic families that will actually be published.
+type PublishSet map[string]bool
+
+// Has reports whether kind should be published.
+func (s PublishSet) Has(kind string) bool { return s[kind] }
+
+// Kinds returns the enabled kinds in a stable order, for logging.
+func (s PublishSet) Kinds() []string {
+	out := make([]string, 0, len(s))
+	for _, k := range PublishKinds {
+		if s[k] {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// DefaultPublishSet is what Sentinel has always published: events, plus the
+// retained availability topic that tells subscribers whether it is alive.
+func DefaultPublishSet() PublishSet {
+	return PublishSet{KindEvents: true, KindAvailability: true}
+}
+
+// ParsePublishSet turns the configured list into a PublishSet. A nil list
+// means the operator has not configured this at all, so the default applies;
+// a non-nil but empty list is an explicit "publish nothing" and is honoured.
+// Entries are case-insensitive and surrounding spaces are ignored. Unknown
+// entries are returned so the caller can complain loudly rather than leaving
+// someone wondering why their topic never appears.
+func ParsePublishSet(items []string) (PublishSet, []string) {
+	if items == nil {
+		return DefaultPublishSet(), nil
+	}
+
+	set := PublishSet{}
+	var unknown []string
+	for _, raw := range items {
+		kind := strings.ToLower(strings.TrimSpace(raw))
+		if kind == "" {
+			continue
+		}
+		valid := false
+		for _, k := range PublishKinds {
+			if kind == k {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			unknown = append(unknown, raw)
+			continue
+		}
+		set[kind] = true
+	}
+	return set, unknown
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

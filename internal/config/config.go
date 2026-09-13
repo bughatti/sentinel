@@ -45,6 +45,16 @@ type MQTTConfig struct {
 	Enabled       bool          `yaml:"enabled"`
 	TLS           bool          `yaml:"tls"`
 	ReconnectWait time.Duration `yaml:"reconnect_wait"`
+
+	// Publish selects which topic families are sent to the broker. Valid
+	// entries are "events", "availability", "motion" and "stats". Leaving it
+	// unset keeps the long-standing behaviour of publishing events and
+	// availability only, so upgrading changes nothing until you ask it to.
+	Publish []string `yaml:"publish"`
+
+	// StatsInterval is how often the stats topic is published. Ignored unless
+	// "stats" is listed in Publish.
+	StatsInterval time.Duration `yaml:"stats_interval"`
 }
 
 // DetectorConfig selects and configures the object detector backend.
@@ -302,6 +312,10 @@ func defaults() *Config {
 			TopicPrefix:   "sentinel",
 			ClientID:      "sentinel-nvr",
 			ReconnectWait: 5 * time.Second,
+			StatsInterval: 60 * time.Second,
+			// Publish is deliberately left nil: nil means "not configured"
+			// and resolves to the default set, while an explicitly empty
+			// list in YAML means "publish nothing".
 		},
 		Detector: DetectorConfig{
 			Type:        "cpu",

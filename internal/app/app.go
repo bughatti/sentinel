@@ -134,8 +134,16 @@ func New(cfg *config.Config) (*App, error) {
 		if err != nil {
 			slog.Warn("app: mqtt connect failed (will continue without MQTT)", "err", err)
 		} else {
+			set, unknown := mqtt.ParsePublishSet(cfg.MQTT.Publish)
+			for _, u := range unknown {
+				// Silently ignoring a typo here would leave someone staring at
+				// a topic that never appears, so name it and say what is valid.
+				slog.Warn("app: unknown entry in mqtt.publish, ignoring",
+					"entry", u, "valid", mqtt.PublishKinds)
+			}
 			a.mqtt = mqttClient
-			a.mqttPub = mqtt.NewPublisher(mqttClient)
+			a.mqttPub = mqtt.NewPublisher(mqttClient, set)
+			slog.Info("app: mqtt publishing enabled", "topics", set.Kinds())
 		}
 	}
 
@@ -169,6 +177,14 @@ func (a *App) Start(ctx context.Context) error {
 	// Start camera manager (capture goroutines).
 	a.cameras.Start(ctx)
 
+	// Motion state → MQTT. Registered before the motion goroutines start, so
+	// the callback exists before the first transition can happen. The
+	// publisher queues and never blocks, which matters because this runs on
+	// the motion goroutine.
+	if a.mqttPub != nil && a.mqttPub.Publishes(mqtt.KindMotion) {
+		a.motion.SetChangeCallback(a.mqttPub.PublishMotion)
+	}
+
 	// Start per-camera motion goroutines.
 	for name, w := range a.cameras.Workers() {
 		go a.motion.Run(ctx, name, w.MotionCh)
@@ -184,9 +200,14 @@ func (a *App) Start(ctx context.Context) error {
 	// Recording dispatch loop.
 	go a.recordingDispatchLoop(ctx)
 
-	// Event bus → MQTT fanout.
+	// MQTT: drain goroutine first, then the producers that feed it.
 	if a.mqttPub != nil {
+		go a.mqttPub.Run(ctx)
 		go a.mqttFanout(ctx)
+		a.mqttPub.PublishAvailable()
+		if a.mqttPub.Publishes(mqtt.KindStats) {
+			go a.mqttStatsLoop(ctx)
+		}
 	}
 
 	// API server (blocking in its own goroutine).
@@ -306,6 +327,57 @@ func (a *App) recordingDispatchLoop(ctx context.Context) {
 			a.recorder.Dispatch(cam, path)
 		}
 	}
+}
+
+// mqttStatsLoop publishes the stats topic on a timer. Only started when
+// "stats" is in mqtt.publish.
+func (a *App) mqttStatsLoop(ctx context.Context) {
+	interval := a.cfg.MQTT.StatsInterval
+	if interval <= 0 {
+		interval = 60 * time.Second
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			a.mqttPub.PublishStats(a.buildStatsPayload())
+		}
+	}
+}
+
+// buildStatsPayload gathers the same runtime numbers the /api/stats endpoint
+// reports, so the MQTT topic and the HTTP API cannot drift apart.
+func (a *App) buildStatsPayload() mqtt.StatsPayload {
+	cams := a.cameras.Cameras()
+	payload := mqtt.BuildStatsPayload(Version, cams)
+
+	var totalDetectFPS float32
+	for _, name := range cams {
+		capFPS, detFPS, skipFPS, _, ok := a.cameras.CameraRuntime(name)
+		if !ok {
+			continue
+		}
+		payload.Cameras[name] = mqtt.CameraStats{
+			CameraFPS:  capFPS,
+			DetectFPS:  detFPS,
+			ProcessFPS: detFPS,
+			SkippedFPS: skipFPS,
+		}
+		totalDetectFPS += detFPS
+	}
+	payload.Detection.DetectionFPS = totalDetectFPS
+
+	if a.detector != nil {
+		frames, avgMs := a.detector.Stats()
+		payload.Detection.TotalFrames = frames
+		payload.Detection.InferenceSpeed = float32(avgMs)
+		payload.Detection.TotalDetTime = avgMs * float64(frames) / 1000.0
+	}
+	return payload
 }
 
 // mqttFanout subscribes to the event bus and publishes all events via MQTT.

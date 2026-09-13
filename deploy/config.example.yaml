@@ -30,6 +30,25 @@ mqtt:
   client_id: "sentinel-nvr"
   reconnect_wait: 5s
 
+  # Choose what gets published. Valid entries:
+  #
+  #   events        every detection/motion event, on <prefix>/events
+  #   availability  retained online/offline, on <prefix>/available
+  #   motion        retained ON/OFF per camera, on <prefix>/<camera>/motion,
+  #                 sent only when the state changes, not on every frame
+  #   stats         periodic system stats, on <prefix>/stats
+  #
+  # Comment this out entirely to keep the long-standing default of events
+  # plus availability. An empty list means publish nothing at all.
+  publish:
+    - events
+    - availability
+    # - motion
+    # - stats
+
+  # How often to publish the stats topic. Ignored unless "stats" is listed.
+  stats_interval: 60s
+
 # ── Object Detector ─────────────────────────────────────────────
 detector:
   # type: "onnx"     — YOLOv8/v9 via ONNX Runtime (CPU or CUDA EP)

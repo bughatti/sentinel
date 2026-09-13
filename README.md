@@ -144,9 +144,20 @@ Sentinel exposes a REST API that existing home automation tooling can consume wi
 
 ## Home Assistant Integration
 
-Sentinel publishes two MQTT topics today: `<prefix>/events` (every event, as a before/after payload) and `<prefix>/available` (retained online/offline). The prefix is set by `topic_prefix` in your config.
+You choose what Sentinel publishes with the `publish` list under `mqtt` in your config. The prefix every topic hangs off is set by `topic_prefix`.
 
-Be aware of the gap: `<prefix>/stats`, `<prefix>/{camera}/motion` and the per-camera object-count topics are defined in the code but not yet published, so integrations that depend on them will see nothing there.
+| Entry | Topic | What arrives |
+|---|---|---|
+| `events` | `<prefix>/events` | Every event, as a before/after payload |
+| `availability` | `<prefix>/available` | Retained `online` / `offline` |
+| `motion` | `<prefix>/<camera>/motion` | Retained `ON` / `OFF`, sent on state changes only |
+| `stats` | `<prefix>/stats` | System stats, on the `stats_interval` timer |
+
+Leaving `publish` out of your config keeps the long-standing default of `events` and `availability`, so upgrading changes nothing until you ask it to. An empty list publishes nothing. A misspelled entry is ignored and logged with the list of valid names, rather than failing silently.
+
+Two things worth knowing. Motion is edge-triggered, so you get a message when motion starts and another when it stops, not one per frame, and because it is retained a subscriber that connects later still learns the current state. Publishing never blocks recording: messages are queued, and if the broker stalls they are dropped with a warning rather than holding up the camera pipeline.
+
+The per-camera object-count topics are defined in the code but still not published, so integrations that depend on those will see nothing there.
 
 **In `configuration.yaml`:**
 

@@ -33,21 +33,53 @@ type cameraState struct {
 	intervals []interval
 }
 
+// eventWriter is the subset of *events.Store this package needs. Declaring it
+// here, rather than depending on the concrete type, follows the same approach
+// the recorder takes with MotionQuerier and lets the state machine be tested
+// without a database behind it.
+type eventWriter interface {
+	InsertEvent(ctx context.Context, e *events.Event) error
+	GetEvent(ctx context.Context, id string) (*events.Event, error)
+	UpdateEvent(ctx context.Context, e *events.Event) error
+}
+
 // Manager tracks motion for all cameras and writes motion events to the DB.
 type Manager struct {
-	store  *events.Store
+	store  eventWriter
 	camCfg map[string]config.CameraConfig
 
 	mu     sync.RWMutex
 	states map[string]*cameraState
+
+	// onChange, if set, is called once per motion state transition for a
+	// camera. Set it before Run starts; it is not guarded by a mutex because
+	// it is wired at startup and never reassigned.
+	onChange func(camera string, active bool)
 }
 
 // NewManager creates a Manager. camCfg is used to read per-camera post_capture.
-func NewManager(store *events.Store, camCfg map[string]config.CameraConfig) *Manager {
+func NewManager(store eventWriter, camCfg map[string]config.CameraConfig) *Manager {
 	return &Manager{
 		store:  store,
 		camCfg: camCfg,
 		states: make(map[string]*cameraState),
+	}
+}
+
+// SetChangeCallback registers fn, called once each time a camera's motion
+// state flips, with true when motion starts and false when it ends. It is not
+// called per frame. Must be called before Run starts.
+//
+// fn runs on the camera's motion goroutine, so it must not block: anything
+// slow or network-bound has to hand off to its own worker.
+func (m *Manager) SetChangeCallback(fn func(camera string, active bool)) {
+	m.onChange = fn
+}
+
+// notify reports a state transition, if anyone is listening.
+func (m *Manager) notify(camName string, active bool) {
+	if m.onChange != nil {
+		m.onChange(camName, active)
 	}
 }
 
@@ -130,6 +162,7 @@ func (m *Manager) Run(ctx context.Context, camName string, ch <-chan camera.Moti
 			if !st.isActive {
 				st.isActive = true
 				m.openEvent(ctx, camName, st, sig)
+				m.notify(camName, true)
 			}
 
 		case <-coolTimer.C:
@@ -186,6 +219,7 @@ func (m *Manager) openEvent(ctx context.Context, camName string, st *cameraState
 
 func (m *Manager) closeEvent(ctx context.Context, camName string, st *cameraState) {
 	st.isActive = false
+	m.notify(camName, false)
 	id := st.eventID
 	endT := st.lastMotion
 	st.eventID = ""
