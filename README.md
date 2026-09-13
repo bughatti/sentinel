@@ -160,30 +160,40 @@ cameras:
 
 ## Object Detection Models
 
-Sentinel uses YOLOv9 in ONNX format. Download a pre-exported model:
+Sentinel needs an ONNX detection model and a matching label file. They are not
+bundled, because the model is large and its licence is not ours to redistribute.
+
+There is no official pre-exported ONNX build of YOLOv8, so export one yourself.
+It takes a minute and only has to be done once:
 
 ```bash
-# YOLOv9-s (small — recommended for CPU/low-power GPU)
-wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov9s.onnx \
-  -O deploy/models/yolov9s.onnx
+pip install ultralytics
+yolo export model=yolov8n.pt format=onnx opset=12    # downloads the weights, writes yolov8n.onnx
 
-# COCO class names
+mkdir -p deploy/models
+mv yolov8n.onnx deploy/models/
+
+# 80 COCO class names, one per line, in the order the model was trained on
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names \
-  -O deploy/models/coco.names
+  -O deploy/models/coco.txt
 ```
 
-Then in `config.yaml`:
+That produces exactly what the shipped `config.example.yaml` already expects, so
+no configuration change is needed:
 
 ```yaml
 detector:
   type: onnx
+  use_gpu: true
   onnx:
-    model_path: "/models/yolov9s.onnx"
-    label_path: "/models/coco.names"
+    model_path: "/models/yolov8n.onnx"
+    label_path: "/models/coco.txt"
     threshold: 0.50
 ```
 
----
+`deploy/models/` is mounted read-only into the container at `/models`. Larger
+models work the same way: export `yolov8s`, `yolov8m` or similar and point
+`model_path` at it. Accuracy improves, throughput drops.
 
 ## Architecture
 

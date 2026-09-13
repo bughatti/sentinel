@@ -12,9 +12,13 @@ services:
 
   # ── Sentinel NVR ────────────────────────────────────────────────
   sentinel:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
+    image: ghcr.io/bughatti/sentinel:latest
+    # To build from source instead of pulling, comment the image line above
+    # and uncomment this. Expect a ~7 GB image: it carries CUDA, cuDNN,
+    # TensorRT and ONNX Runtime.
+    # build:
+    #   context: ..
+    #   dockerfile: deploy/Dockerfile
     container_name: sentinel
     restart: unless-stopped
     deploy:
@@ -40,7 +44,7 @@ services:
       - /media/sentinel/clips:/clips
       - /media/sentinel/exports:/exports
       - /tmp/sentinel:/tmp/sentinel
-      - /media/sentinel/models:/models:ro    # ONNX model files
+      - ./models:/models:ro                  # detector models (see README)
     environment:
       - TZ=America/Denver
     healthcheck:

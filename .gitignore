@@ -51,3 +51,7 @@ config.yaml.pre-*
 docker-compose.yml.pre-*
 *.pre-*-bak
 /sentinel_test
+
+# detector models: large, and not ours to redistribute
+deploy/models/*
+!deploy/models/README.md
