@@ -1,5 +1,5 @@
 # Binaries
-sentinel
+/sentinel
 sentinel-linux-amd64
 sentinel-linux-arm64
 *.exe
@@ -50,5 +50,4 @@ config.yaml.bak*
 config.yaml.pre-*
 docker-compose.yml.pre-*
 *.pre-*-bak
-/sentinel
 /sentinel_test
