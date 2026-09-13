@@ -45,21 +45,39 @@ Honest state of things, so you can judge whether to run it:
 
 ### 1. Clone and configure
 
+Everything below runs from `deploy/`, because that is where the compose file
+looks for its configuration.
+
 ```bash
 git clone https://github.com/bughatti/sentinel.git
-cd sentinel
-cp deploy/config.example.yaml config.yaml
-cp .env.example .env          # set POSTGRES_PASSWORD; the stack will not start without it
-# Edit config.yaml — set database.url and add your cameras
+cd sentinel/deploy
+
+cp config.example.yaml config.yaml      # your cameras and database URL
+cp go2rtc.example.yaml go2rtc.yaml      # restreaming; leave as-is if unsure
+cp ../.env.example .env                 # set POSTGRES_PASSWORD, the stack will not start without it
+
+# Set the SAME password inside config.yaml under database.url.
+# The config file is literal YAML and does not read environment variables.
 ```
 
-### 2. Start with Docker Compose
+`mosquitto.conf` already ships in this directory, and `models/` is created by
+the model step below. Both are mounted by the compose file, so leave them where
+they are.
+
+### 2. Add a detection model
+
+Sentinel will start without one, but nothing will be detected. See
+[Object Detection Models](#object-detection-models) below, then come back.
+
+### 2b. Start with Docker Compose
 
 ```bash
-docker compose -f deploy/docker-compose.yml up -d
+docker compose up -d
 ```
 
-The UI is available at `http://localhost:5000`.
+This pulls the published image rather than building it. The dashboard is at
+`http://localhost:5000`, and the first start takes 40 to 60 seconds while the
+detector warms up and cameras connect.
 
 ### 3. GPU acceleration (optional)
 
@@ -170,12 +188,12 @@ It takes a minute and only has to be done once:
 pip install ultralytics
 yolo export model=yolov8n.pt format=onnx opset=12    # downloads the weights, writes yolov8n.onnx
 
-mkdir -p deploy/models
-mv yolov8n.onnx deploy/models/
+mkdir -p models
+mv yolov8n.onnx models/
 
 # 80 COCO class names, one per line, in the order the model was trained on
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names \
-  -O deploy/models/coco.txt
+  -O models/coco.txt
 ```
 
 That produces exactly what the shipped `config.example.yaml` already expects, so
