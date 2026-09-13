@@ -1,5 +1,5 @@
 // Package api provides the HTTP API server for Sentinel NVR with
-// integration-friendly endpoints.
+// REST endpoints.
 package api
 
 import (

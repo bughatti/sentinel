@@ -1,5 +1,5 @@
 // Package events defines the Event type and related structures that flow
-// through Sentinel NVR. The JSON schema is integration-friendly so existing
+// through Sentinel NVR. The JSON schema is stable so existing
 // Home Assistant integrations work without modification.
 package events
 
@@ -30,9 +30,9 @@ type Region struct {
 	Y2 float32 `json:"y2"`
 }
 
-// Event mirrors the reference event payload exactly, with additional Sentinel
+// Event is the published event payload, with additional Sentinel
 // fields in the Data map. All float time fields use Unix seconds with
-// sub-second precision as the reference implementation does.
+// sub-second precision.
 type Event struct {
 	// Core identity
 	ID     string    `json:"id"` // "unixtime.shortuuid"
@@ -68,7 +68,7 @@ type Event struct {
 	RetainIndefinitely bool `json:"retain_indefinitely"`
 	FalsePositive      bool `json:"false_positive"`
 
-	// the reference implementation detector compat fields
+	// detector fields
 	ModelHash    string `json:"model_hash,omitempty"`
 	DetectorType string `json:"detector_type,omitempty"`
 	ModelType    string `json:"model_type,omitempty"`

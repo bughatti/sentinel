@@ -1,5 +1,5 @@
 // Package mqtt provides a Paho MQTT client with auto-reconnect, a publisher,
-// and integration-friendly topic/payload schemas.
+// and the MQTT topic/payload schemas.
 package mqtt
 
 import (
@@ -8,11 +8,12 @@ import (
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Topic helpers — integration-friendly
+// Topic helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Topics constructs MQTT topic strings matching the reference published schema.
-// The prefix defaults to "sentinel" for Home Assistant integration compat.
+// Topics constructs the MQTT topic strings events are published on.
+// The prefix is configurable; set it to whatever your home automation
+// integration subscribes to.
 type Topics struct {
 	Prefix string
 }
@@ -41,18 +42,18 @@ func (t *Topics) CameraObjectEnter(cam, label string) string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Payload schemas (integration-friendly JSON structs)
+// Payload schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
 // EventPayload is the MQTT payload published to <prefix>/events.
-// Matches the reference before/after event schema.
+// Uses a before/after event schema.
 type EventPayload struct {
 	Type   string     `json:"type"`   // "new" | "update" | "end"
 	Before *EventData `json:"before"` // nil for new events
 	After  EventData  `json:"after"`
 }
 
-// EventData mirrors the reference event data fields.
+// EventData carries the per-event fields.
 type EventData struct {
 	ID              string             `json:"id"`
 	Camera          string             `json:"camera"`

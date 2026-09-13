@@ -19,7 +19,7 @@ func NewPublisher(c *Client) *Publisher {
 }
 
 // PublishEvent publishes an event to <prefix>/events.
-// The payload matches the reference before/after JSON structure.
+// The payload uses a before/after JSON structure.
 func (p *Publisher) PublishEvent(e events.Event) {
 	after := buildEventData(e)
 	payload := EventPayload{
@@ -65,7 +65,7 @@ func (p *Publisher) PublishAvailable() {
 	p.client.Publish(p.client.topics.Available(), true, "online")
 }
 
-// buildEventData maps an events.Event to the integration-friendly EventData
+// buildEventData maps an events.Event to the published EventData
 // struct.
 func buildEventData(e events.Event) EventData {
 	frameTime := e.StartTime

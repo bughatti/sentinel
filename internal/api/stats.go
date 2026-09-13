@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// statsPayload is the integration-friendly /api/stats response.
+// statsPayload is the /api/stats response.
 type statsPayload struct {
 	Detection detectionStats         `json:"detection"`
 	Cameras   map[string]cameraStats `json:"cameras"`

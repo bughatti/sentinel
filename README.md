@@ -5,16 +5,16 @@
 [![Container](https://img.shields.io/badge/ghcr.io-bughatti%2Fsentinel-blue)](https://github.com/bughatti/sentinel/pkgs/container/sentinel)
 [![Go Version](https://img.shields.io/badge/Go-1.23-00ADD8.svg)](https://golang.org)
 
-**Sentinel NVR — A high-performance, GPU-accelerated Network Video Recorder built in Go. integration-friendly API, PostgreSQL storage, NVIDIA DeepStream support.**
+**Sentinel NVR — A high-performance, GPU-accelerated Network Video Recorder built in Go. REST API, PostgreSQL storage, NVIDIA DeepStream support.**
 
-Sentinel trades Python for Go and adds first-class PostgreSQL persistence, pluggable AI backends (ONNX Runtime, NVIDIA DeepStream), and a modular architecture designed to scale beyond a single host. It follows the reference REST and MQTT conventions closely enough that the reference implementation tooling can talk to it, with the limits described under Project status.
+Sentinel trades Python for Go and adds first-class PostgreSQL persistence, pluggable AI backends (ONNX Runtime, NVIDIA DeepStream), and a modular architecture designed to scale beyond a single host. Its REST API and MQTT event stream use stable, documented shapes, so existing home automation tooling can consume them, with the limits described under Project status.
 
 ## Project status
 
 Honest state of things, so you can judge whether to run it:
 
 - **In daily use on one deployment**, eight cameras with GPU detection, running continuously.
-- **the reference implementation API compatibility is partial.** The REST API and the `<prefix>/events` and `<prefix>/available` MQTT topics work. Stats and per-camera motion or object-count topics are not published yet.
+- **MQTT coverage is partial.** The REST API works, and `<prefix>/events` and `<prefix>/available` are published. Stats and per-camera motion or object-count topics are not published yet.
 - **Test coverage is thin.** The credential redaction and configuration loading paths are covered; most of the pipeline is not. Contributions welcome.
 - **Verified on NVIDIA GPUs and CPU decoding.** The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
 
@@ -22,22 +22,22 @@ Honest state of things, so you can judge whether to run it:
 
 ## Features
 
-| Feature | Sentinel | the reference implementation |
-|---------|----------|---------|
-| Language | Go | Python |
-| Detection backend | ONNX Runtime / DeepStream | TensorRT / OpenVINO |
-| Storage | PostgreSQL + pgvector | SQLite |
-| Face recognition | Built-in (ArcFace + pgvector) | Via external script |
-| API compatibility | integration-friendly REST + MQTT | Native |
-| Home Assistant integration | Drop-in (same topics + API) | Native |
-| Config hot-reload | Yes (fsnotify debounce) | Yes |
-| Multi-camera batching | Yes (dynamic batch assembly) | Yes |
-| Recording format | MP4 segments (HLS-compatible) | MP4 segments |
-| Zone detection | Polygon + inertia | Polygon + inertia |
-| Object tracking | IoU centroid tracker | Yes |
-| Motion detection | Background subtraction (Go) | Yes |
-| WebSocket events | Yes | Yes |
-| Docker / GPU override | Yes | Yes |
+| Feature | Sentinel |
+|---------|----------|
+| Language | Go |
+| Detection backend | ONNX Runtime / DeepStream |
+| Storage | PostgreSQL + pgvector |
+| Face recognition | Built-in (ArcFace + pgvector) |
+| API | REST + MQTT |
+| Home Assistant integration | Drop-in (same topics + API) |
+| Config hot-reload | Yes (fsnotify debounce) |
+| Multi-camera batching | Yes (dynamic batch assembly) |
+| Recording format | MP4 segments (HLS-compatible) |
+| Zone detection | Polygon + inertia |
+| Object tracking | IoU centroid tracker |
+| Motion detection | Background subtraction (Go) |
+| WebSocket events | Yes |
+| Docker / GPU override | Yes |
 
 ---
 
@@ -98,7 +98,7 @@ See [`deploy/config.example.yaml`](deploy/config.example.yaml) for the full anno
 
 ## API Reference
 
-Sentinel exposes a integration-friendly REST API so Home Assistant and existing tooling work without changes.
+Sentinel exposes a REST API that existing home automation tooling can consume without changes.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -120,19 +120,14 @@ Sentinel exposes a integration-friendly REST API so Home Assistant and existing 
 
 ## Home Assistant Integration
 
-Sentinel publishes two the published MQTT topics today: `<prefix>/events` (every event, with a the published payload) and `<prefix>/available` (retained online/offline). Point the the reference implementation Home Assistant integration at Sentinel's API URL and MQTT topics and the event stream works.
+Sentinel publishes two MQTT topics today: `<prefix>/events` (every event, as a before/after payload) and `<prefix>/available` (retained online/offline). The prefix is set by `topic_prefix` in your config.
 
-Be aware of the gap: `<prefix>/stats`, `<prefix>/{camera}/motion` and the per-camera object-count topics are defined in the code but not yet published, so Home Assistant entities that depend on them stay empty. If you rely on those, Sentinel is not yet a drop-in replacement for you.
+Be aware of the gap: `<prefix>/stats`, `<prefix>/{camera}/motion` and the per-camera object-count topics are defined in the code but not yet published, so integrations that depend on them will see nothing there.
 
 **In `configuration.yaml`:**
 
-```yaml
-sentinel:
-  host: "192.168.1.x"
-  port: 5000
-```
 
-Or use the [home automation MQTT integration]() pointed at Sentinel.
+Point your home automation platform's MQTT integration at the same broker and topic prefix Sentinel publishes on.
 
 ---
 
@@ -260,7 +255,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Acknowledgements
 
-- [existing NVR projects]() — the original inspiration, MQTT schema, and API design
+- The open-source NVR community — inspiration for the MQTT schema and API design
 - [go2rtc](https://github.com/AlexxIT/go2rtc) — stream gateway
 - [YOLOv9](https://github.com/WongKinYiu/yolov9) — detection model
 - [ONNX Runtime](https://github.com/microsoft/onnxruntime) — inference engine

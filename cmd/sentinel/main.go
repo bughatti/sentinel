@@ -31,7 +31,7 @@ func rootCmd() *cobra.Command {
 		Use:   "sentinel",
 		Short: "Sentinel NVR — GPU-accelerated network video recorder",
 		Long: `Sentinel NVR is a high-performance, GPU-accelerated Network Video Recorder
-built in Go. It provides a integration-friendly API for Home Assistant integration.
+built in Go. It provides a REST API and MQTT event stream for home automation integration.
 
 Documentation: https://github.com/bughatti/sentinel`,
 		RunE: func(cmd *cobra.Command, args []string) error {

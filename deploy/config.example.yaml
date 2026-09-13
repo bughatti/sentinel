@@ -24,7 +24,8 @@ mqtt:
   # user: ""
   # password: ""
 
-  # Topic prefix — set to "sentinel" to keep HA auto-discovery working.
+  # Topic prefix for everything Sentinel publishes. Set this to match
+  # whatever your home automation integration subscribes to.
   topic_prefix: "sentinel"
   client_id: "sentinel-nvr"
   reconnect_wait: 5s
