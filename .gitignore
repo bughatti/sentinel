@@ -56,11 +56,11 @@ docker-compose.yml.pre-*
 deploy/models/*
 !deploy/models/README.md
 
-# Local deployment leftovers. These live beside a real install and carry real
-# values: the root compose sets POSTGRES_PASSWORD, and *.bak- copies of broker
-# configs have contained a bridge address and remote_password. None belongs in
-# a public repository. deploy/docker-compose.yml is the shipped one and stays
-# tracked; this rule is anchored to the repository root.
+# Local deployment leftovers. A real install keeps machine-specific files
+# beside the checkout, and those hold environment-specific settings that are
+# meaningless to anyone else and must not be published. The shipped compose
+# file at deploy/docker-compose.yml is the one users want and stays tracked,
+# so the rule below is anchored to the repository root.
 /docker-compose.yml
 deploy/Dockerfile.run
 *.bak-*
