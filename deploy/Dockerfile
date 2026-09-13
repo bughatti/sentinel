@@ -17,8 +17,9 @@ COPY . .
 
 RUN mkdir -p internal/api/webdist
 
-# Build version — override with: docker compose build --build-arg VERSION=1.2.3
-ARG VERSION=1.0.0
+# Build version. CI passes the git tag; an unset build reports "dev" rather
+# than claiming a release it is not.
+ARG VERSION=dev
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-I/opt/ort/include"
