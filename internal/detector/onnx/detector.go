@@ -93,48 +93,14 @@ func New(modelPath, labelPath string, confThreshold float32, numThreads int, inp
 	}
 
 	if useGPU {
-		// TensorRT EP first (preferred) — it compiles the model to a TensorRT
-		// engine (fp16 on the RTX 5080) and runs it; unsupported ops + engine
-		// build fall through to the CUDA EP below. The engine is cached so only
-		// the first startup pays the (minutes-long) build cost.
-		if useTensorRT {
-			_ = os.MkdirAll("/tmp/sentinel/trt-cache", 0o755)
-			trtOpts, err := ort.NewTensorRTProviderOptions()
-			if err != nil {
-				return nil, fmt.Errorf("onnx: tensorrt provider options: %w", err)
-			}
-			if err := trtOpts.Update(map[string]string{
-				"device_id":               fmt.Sprintf("%d", gpuDeviceID),
-				"trt_fp16_enable":         "1",
-				"trt_engine_cache_enable": "1",
-				"trt_engine_cache_path":   "/tmp/sentinel/trt-cache",
-				"trt_timing_cache_enable": "1",
-			}); err != nil {
-				_ = trtOpts.Destroy()
-				return nil, fmt.Errorf("onnx: tensorrt provider update: %w", err)
-			}
-			if err := opts.AppendExecutionProviderTensorRT(trtOpts); err != nil {
-				slog.Warn("onnx: TensorRT EP unavailable, falling back to CUDA", "err", err)
-			} else {
-				slog.Info("onnx: TensorRT execution provider enabled (fp16, engine cache)", "device", gpuDeviceID)
-			}
-			_ = trtOpts.Destroy()
+		if err := appendGPUProviders(opts, gpuDeviceID, useTensorRT); err != nil {
+			// No GPU, a driver problem, or an image built without GPU support
+			// must not cost the operator object detection. CPU inference is far
+			// slower, but it still finds people and cars, which beats silently
+			// dropping to recording-only.
+			slog.Warn("onnx: GPU execution unavailable, running detection on CPU — expect much lower throughput",
+				"err", err)
 		}
-
-		cudaOpts, err := ort.NewCUDAProviderOptions()
-		if err != nil {
-			return nil, fmt.Errorf("onnx: cuda provider options: %w", err)
-		}
-		defer func() { _ = cudaOpts.Destroy() }()
-		if err := cudaOpts.Update(map[string]string{
-			"device_id": fmt.Sprintf("%d", gpuDeviceID),
-		}); err != nil {
-			return nil, fmt.Errorf("onnx: cuda provider update: %w", err)
-		}
-		if err := opts.AppendExecutionProviderCUDA(cudaOpts); err != nil {
-			return nil, fmt.Errorf("onnx: append cuda provider: %w", err)
-		}
-		slog.Info("onnx: CUDA execution provider enabled (fallback)", "device", gpuDeviceID)
 	}
 
 	// Input tensor: float32[batch, 3, inputH, inputW]
@@ -311,4 +277,73 @@ func loadLabels(path string) ([]string, error) {
 		}
 	}
 	return labels, sc.Err()
+}
+
+// appendGPUProviders registers TensorRT (when requested) and CUDA on opts.
+// It returns an error only when no GPU provider could be registered at all, in
+// which case ONNX Runtime uses its CPU provider. A CPU-only ONNX Runtime build
+// fails here cleanly, which is what lets one config work on both images.
+func appendGPUProviders(opts *ort.SessionOptions, deviceID int, useTensorRT bool) error {
+	trtEnabled := false
+	if useTensorRT {
+		if err := appendTensorRT(opts, deviceID); err != nil {
+			slog.Warn("onnx: TensorRT EP unavailable, falling back to CUDA", "err", err)
+		} else {
+			trtEnabled = true
+			slog.Info("onnx: TensorRT execution provider enabled (fp16, engine cache)", "device", deviceID)
+		}
+	}
+
+	if err := appendCUDA(opts, deviceID); err != nil {
+		if trtEnabled {
+			slog.Warn("onnx: CUDA EP unavailable; TensorRT handles supported ops and CPU the rest", "err", err)
+			return nil
+		}
+		return err
+	}
+	slog.Info("onnx: CUDA execution provider enabled (fallback)", "device", deviceID)
+	return nil
+}
+
+// appendTensorRT compiles the model to a TensorRT engine (fp16) and caches it,
+// so only the first startup pays the minutes-long build.
+func appendTensorRT(opts *ort.SessionOptions, deviceID int) error {
+	_ = os.MkdirAll("/tmp/sentinel/trt-cache", 0o755)
+	trtOpts, err := ort.NewTensorRTProviderOptions()
+	if err != nil {
+		return fmt.Errorf("tensorrt provider options: %w", err)
+	}
+	// ONNX Runtime copies provider options on append, so releasing them here
+	// is safe.
+	defer func() { _ = trtOpts.Destroy() }()
+	if err := trtOpts.Update(map[string]string{
+		"device_id":               fmt.Sprintf("%d", deviceID),
+		"trt_fp16_enable":         "1",
+		"trt_engine_cache_enable": "1",
+		"trt_engine_cache_path":   "/tmp/sentinel/trt-cache",
+		"trt_timing_cache_enable": "1",
+	}); err != nil {
+		return fmt.Errorf("tensorrt provider update: %w", err)
+	}
+	if err := opts.AppendExecutionProviderTensorRT(trtOpts); err != nil {
+		return fmt.Errorf("append tensorrt provider: %w", err)
+	}
+	return nil
+}
+
+func appendCUDA(opts *ort.SessionOptions, deviceID int) error {
+	cudaOpts, err := ort.NewCUDAProviderOptions()
+	if err != nil {
+		return fmt.Errorf("cuda provider options: %w", err)
+	}
+	defer func() { _ = cudaOpts.Destroy() }()
+	if err := cudaOpts.Update(map[string]string{
+		"device_id": fmt.Sprintf("%d", deviceID),
+	}); err != nil {
+		return fmt.Errorf("cuda provider update: %w", err)
+	}
+	if err := opts.AppendExecutionProviderCUDA(cudaOpts); err != nil {
+		return fmt.Errorf("append cuda provider: %w", err)
+	}
+	return nil
 }

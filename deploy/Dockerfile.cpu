@@ -1,0 +1,93 @@
+# syntax=docker/dockerfile:1
+#
+# Sentinel NVR — CPU image (linux/amd64 and linux/arm64)
+#
+# For every machine without an NVIDIA GPU: CPU-only hosts, AMD and Intel GPUs,
+# Raspberry Pi and other arm64 boards. Object detection runs on ONNX Runtime's
+# CPU provider. Video decoding can still use an AMD or Intel GPU through VAAPI
+# when /dev/dri is passed in (see deploy/docker-compose.vaapi.yml).
+#
+# NVIDIA users want deploy/Dockerfile instead. It carries CUDA, cuDNN and
+# TensorRT, which is several gigabytes this image deliberately leaves out.
+
+# The builder always runs on the machine doing the build and cross-compiles
+# for the target, so an arm64 image builds at native speed on an x86 runner
+# instead of under emulation.
+FROM --platform=$BUILDPLATFORM golang:1.23-bookworm AS builder
+
+ARG TARGETARCH
+ARG BUILDARCH
+ARG ORT_VERSION=1.20.1
+
+WORKDIR /build
+
+RUN set -eux; \
+    pkgs="ca-certificates curl gcc libc6-dev"; \
+    if [ "$TARGETARCH" != "$BUILDARCH" ]; then \
+      case "$TARGETARCH" in \
+        arm64) pkgs="$pkgs gcc-aarch64-linux-gnu libc6-dev-arm64-cross" ;; \
+        amd64) pkgs="$pkgs gcc-x86-64-linux-gnu libc6-dev-amd64-cross" ;; \
+        *) echo "unsupported target architecture: $TARGETARCH" >&2; exit 1 ;; \
+      esac; \
+    fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends $pkgs; \
+    rm -rf /var/lib/apt/lists/*
+
+# ONNX Runtime CPU build for the TARGET architecture. The Go binding loads it
+# at runtime, so it is only copied into the final image, never linked here.
+RUN set -eux; \
+    case "$TARGETARCH" in \
+      amd64) ort_arch=x64 ;; \
+      arm64) ort_arch=aarch64 ;; \
+    esac; \
+    mkdir -p /opt/ort; \
+    curl -fsSL "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/onnxruntime-linux-${ort_arch}-${ORT_VERSION}.tgz" \
+      | tar -xz --strip-components=1 -C /opt/ort
+
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN mkdir -p internal/api/webdist
+
+# Build version. CI passes the git tag; an unset build reports "dev" rather
+# than claiming a release it is not.
+ARG VERSION=dev
+
+RUN set -eux; \
+    if [ "$TARGETARCH" != "$BUILDARCH" ]; then \
+      case "$TARGETARCH" in \
+        arm64) export CC=aarch64-linux-gnu-gcc ;; \
+        amd64) export CC=x86_64-linux-gnu-gcc ;; \
+      esac; \
+    fi; \
+    CGO_ENABLED=1 GOOS=linux GOARCH="$TARGETARCH" \
+    go build \
+      -ldflags="-s -w -X github.com/bughatti/sentinel/internal/app.Version=${VERSION}" \
+      -o /build/sentinel \
+      ./cmd/sentinel
+
+# Same base distribution as the NVIDIA image, so both ship the same FFmpeg
+# major version and behave the same way on the same camera streams.
+FROM ubuntu:24.04
+
+# mesa-va-drivers provides VAAPI decoding for AMD (and older Intel) GPUs.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg ca-certificates curl tzdata mesa-va-drivers \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/ort/lib/libonnxruntime*.so* /usr/local/lib/
+RUN ldconfig
+
+COPY --from=builder /build/sentinel /usr/local/bin/sentinel
+
+RUN mkdir -p /recordings /snapshots /clips /exports /tmp/sentinel /etc/sentinel /models
+
+ENV SENTINEL_CONFIG=/etc/sentinel/config.yaml
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5000/healthz || exit 1
+
+ENTRYPOINT ["/usr/local/bin/sentinel"]
+CMD ["--config", "/etc/sentinel/config.yaml"]

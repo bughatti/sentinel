@@ -17,9 +17,9 @@ Honest state of things, so you can judge whether to run it:
 - **A missing or unreadable model degrades to recording-only.** Cameras keep
   recording and the dashboard keeps working; only detection stops, with an
   error in the log naming the file.
-- **MQTT coverage is partial.** The REST API works, and `<prefix>/events` and `<prefix>/available` are published. Stats and per-camera motion or object-count topics are not published yet.
-- **Test coverage is partial.** Configuration loading and validation, credential redaction in logs, MQTT topic construction and event payload mapping, and API authentication are covered. The detection pipeline, storage and recorder are not. Contributions welcome.
-- **Verified on NVIDIA GPUs and CPU decoding.** The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
+- **MQTT coverage is mostly complete.** Events, availability, per-camera motion and stats can all be published, selected with `mqtt.publish`. Per-camera object-count topics are not published yet.
+- **Test coverage is partial.** Configuration loading and validation, credential redaction in logs, MQTT topic construction, publishing and event payload mapping, the motion state machine, and API authentication are covered. The detection pipeline, storage and recorder are not. Contributions welcome.
+- **Verified on NVIDIA GPUs, and on CPU detection on x86-64.** The arm64 image is built on every release but has not yet been run on real arm64 hardware, so reports from Raspberry Pi or similar boards are welcome. The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
 
 ---
 
@@ -75,24 +75,46 @@ file it could not load. Footage is never sacrificed for a configuration
 mistake. To get detection, see
 [Object Detection Models](#object-detection-models) below, then come back.
 
-### 2b. Start with Docker Compose
+### 3. Start it
+
+Sentinel publishes two images, so nobody downloads GPU libraries their
+hardware cannot use. Pick the row that matches your machine. Every command runs
+from `deploy/`.
+
+| Your hardware | Image tag | Download | Detection runs on |
+|---|---|---|---|
+| No NVIDIA GPU: CPU only, AMD, Intel, Raspberry Pi and other arm64 | `latest-cpu` | about 220 MB | CPU |
+| NVIDIA GPU | `latest` | about 4.6 GB | GPU, with CUDA and TensorRT |
+
+**Any machine, CPU detection** (amd64 or arm64):
 
 ```bash
 docker compose up -d
 ```
 
-This pulls the published image rather than building it. The dashboard is at
-`http://localhost:5000`, and the first start takes 40 to 60 seconds while the
-detector warms up and cameras connect.
-
-### 3. GPU acceleration (optional)
+**NVIDIA GPU.** Needs the NVIDIA Container Toolkit on the host:
 
 ```bash
-docker compose \
-  -f deploy/docker-compose.yml \
-  -f deploy/docker-compose.gpu.yml \
-  up -d
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 ```
+
+**AMD or Intel GPU.** Detection stays on the CPU, but video decoding moves to
+the GPU, which is usually the bigger share of CPU load with several cameras.
+Add `hwaccel: vaapi` under each camera's `ffmpeg` section, then:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.vaapi.yml up -d
+```
+
+Each command pulls a published image rather than building one. The dashboard
+is at `http://localhost:5000`, and the first start takes 40 to 60 seconds while
+the detector warms up and cameras connect. On an NVIDIA GPU with TensorRT
+enabled, the very first start can take several minutes longer while the engine
+is built; later starts reuse it.
+
+The same `config.yaml` works on both images. With `use_gpu: true` on the CPU
+image, or on a machine whose GPU is unavailable, detection falls back to the CPU
+and logs a warning instead of switching detection off.
 
 ---
 

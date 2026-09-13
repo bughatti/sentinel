@@ -56,7 +56,9 @@ detector:
   # type: "deepstream" — NVIDIA DeepStream bridge (GPU required)
   type: "onnx"
 
-  # Enable NVIDIA GPU acceleration via ONNX Runtime CUDA EP.
+  # Enable NVIDIA GPU acceleration via ONNX Runtime CUDA EP. Safe to leave on
+  # everywhere: on the CPU image, or when no GPU is available, detection falls
+  # back to the CPU and logs a warning rather than turning detection off.
   use_gpu: true
   gpu_device_id: 0
 

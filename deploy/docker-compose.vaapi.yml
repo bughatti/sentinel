@@ -1,0 +1,21 @@
+---
+# Sentinel NVR — AMD / Intel GPU video decoding override
+# ======================================================
+# Use from the deploy/ directory:
+#   docker compose -f docker-compose.yml -f docker-compose.vaapi.yml up -d
+#
+# Passes the host's GPU render devices into the CPU image so FFmpeg can decode
+# camera streams on an AMD or Intel GPU through VAAPI. Object detection still
+# runs on the CPU; this takes video decoding off it, which is usually the larger
+# share of CPU load with several high-resolution cameras.
+#
+# Then set, per camera in config.yaml:
+#   ffmpeg:
+#     hwaccel: vaapi
+#
+# Requires /dev/dri on the host (check with: ls /dev/dri).
+
+services:
+  sentinel:
+    devices:
+      - /dev/dri:/dev/dri

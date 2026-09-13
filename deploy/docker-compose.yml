@@ -1,33 +1,32 @@
 ---
 # Sentinel NVR — Production Docker Compose
 # =========================================
-# Quick start:
-#   cp deploy/config.example.yaml config.yaml
-#   # Edit config.yaml
-#   docker compose -f deploy/docker-compose.yml up -d
+# Run from the deploy/ directory:
+#
+#   Any machine (CPU detection, amd64 or arm64):
+#     docker compose up -d
+#
+#   NVIDIA GPU (CUDA + TensorRT detection):
+#     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#
+#   AMD or Intel GPU (GPU video decoding, CPU detection):
+#     docker compose -f docker-compose.yml -f docker-compose.vaapi.yml up -d
 
-version: "3.9"
 
 services:
 
   # ── Sentinel NVR ────────────────────────────────────────────────
   sentinel:
-    image: ghcr.io/bughatti/sentinel:latest
+    # The CPU image runs on any amd64 or arm64 machine and needs no GPU.
+    # docker-compose.gpu.yml swaps in the NVIDIA image for GPU detection.
+    image: ghcr.io/bughatti/sentinel:latest-cpu
     # To build from source instead of pulling, comment the image line above
-    # and uncomment this. Expect a ~7 GB image: it carries CUDA, cuDNN,
-    # TensorRT and ONNX Runtime.
+    # and uncomment this.
     # build:
     #   context: ..
-    #   dockerfile: deploy/Dockerfile
+    #   dockerfile: deploy/Dockerfile.cpu
     container_name: sentinel
     restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     depends_on:
       postgres:
         condition: service_healthy

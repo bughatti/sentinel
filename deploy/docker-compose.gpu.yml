@@ -1,18 +1,24 @@
 ---
 # Sentinel NVR — GPU (NVIDIA) override
 # =====================================
-# Use with: docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.gpu.yml up -d
+# Use from the deploy/ directory:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 #
 # Requires:
 #   - NVIDIA GPU
 #   - NVIDIA Container Toolkit (nvidia-docker2)
 #   - nvidia-smi accessible from the Docker host
 
-version: "3.9"
 
 services:
 
   sentinel:
+    # The NVIDIA image: CUDA, cuDNN, TensorRT and the GPU build of ONNX Runtime.
+    # Several gigabytes, which is why the CPU image is the default.
+    image: ghcr.io/bughatti/sentinel:latest
+    # build:
+    #   context: ..
+    #   dockerfile: deploy/Dockerfile
     deploy:
       resources:
         reservations:
@@ -30,7 +36,10 @@ services:
   # multi-stream inference.
   #
   # Build your own DeepStream bridge image; no prebuilt image is published yet.
+  # It is behind a profile so the GPU override works without it. Enable with:
+  #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile deepstream up -d
   deepstream:
+    profiles: ["deepstream"]
     image: deepstream-bridge:latest
     container_name: sentinel-deepstream
     restart: unless-stopped
