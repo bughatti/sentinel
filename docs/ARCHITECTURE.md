@@ -1,8 +1,8 @@
 # Sentinel NVR — Architecture & Engineering Notes
 
 > Custom Go network video recorder, built as a **drop-in the reference implementation replacement** (integration-friendly REST + MQTT so existing Home Assistant integrations work unmodified). Object detection via ONNX Runtime YOLOv8n on GPU, PostgreSQL+pgvector storage, go2rtc for streams.
-> Module `github.com/sentinel-nvr/sentinel` · Go 1.23 (NAS host has 1.26) · MIT.
-> _Notes compiled 2026-07-26 from a full source read. File:line refs are to the laptop source tree `C:\Users\Liquid\sentinel-nvr`._
+> Module `github.com/bughatti/sentinel` · Go 1.23 (NAS host has 1.26) · MIT.
+> _Notes compiled 2026-07-26 from a full source read; file:line references are to this repository._
 
 ---
 
@@ -13,7 +13,7 @@ The bulk of §14/§16 "known issues" were **resolved in a big 2026-07-26 session
 - **FACE RECOGNITION now IMPLEMENTED** (was scaffold-only): `internal/face/` — SCRFD detect + 5-pt align + ArcFace 512-d embed (ONNX) → pgvector cosine match → `sub_label`; enroll API + Faces UI. Models on NAS `/media/sentinel/models/{scrfd_10g,arcface_w600k_r50}.onnx`.
 - **TensorRT ENABLED** (`detector.use_tensorrt`): ORT TensorRT EP fp16 → inference 44→2.7ms (16×) on the RTX 5080. **NVDEC + `scale_cuda`** GPU decode+resize (`ffmpeg.hwaccel: cuda`, 7/8 cams — reolink's 896×512 sub-stream can't NVDEC so it's CPU-decode). Detector is now **batch- + input-size-agnostic** with **true batched inference** + a preprocess **fast-path**.
 - **DeepStream** full GStreamer pipeline: assessed NOT worth building (TensorRT delivers the win).
-- **★ PENDING:** max-detail model (YOLO11/bigger) — attempted, yolo11 produced near-zero class scores in our inference (cause unknown), reverted to **yolov8n@640**. See the project memory `sentinel-nvr` for resume steps. Model is still YOLOv8n (code comments say "YOLOv9" — harmless).
+- **★ PENDING:** max-detail model (YOLO11/bigger) — attempted, yolo11 produced near-zero class scores in our inference (cause unknown), reverted to **yolov8n@640**. Model is still YOLOv8n (code comments say "YOLOv9" — harmless).
 
 Everything below the line is the original full architecture reference (still accurate for structure; treat its "known issues" as historical unless re-confirmed).
 
@@ -31,7 +31,7 @@ Everything below the line is the original full architecture reference (still acc
 
 ## 1. Deployment & runtime
 
-### Containers (actual, on the NAS `the deployment directory/docker-compose.yml`)
+### Containers (as deployed by `deploy/docker-compose.yml`)
 | Container | Image | Purpose |
 |---|---|---|
 | `sentinel` | built from `deploy/Dockerfile` | the NVR (API :5000, detection, recording) |
@@ -44,7 +44,7 @@ Host media at **`/media/sentinel/{recordings,snapshots,clips,exports,models}`** 
 > **Repo divergence to know:** the *running* compose (NAS repo root `docker-compose.yml`) maps `/media/sentinel/* → /recordings` etc. — matching `config.yaml`'s storage dirs. The template `deploy/docker-compose.yml` in the repo instead maps to `/media/recordings` and would NOT match the config — don't deploy from the template as-is. The laptop repo has `deploy/` but **not** the authoritative root `docker-compose.yml`; the NAS repo is the source of truth for the compose + `config.yaml`.
 
 ### Build & deploy (hard-won 2026-07-26)
-- **Go source:** edit (laptop `C:\Users\Liquid\sentinel-nvr` is the code source of truth) → validate on NAS `cd the deployment directory && go build ./...` (Go 1.26 on host, fast) → `docker compose build sentinel && docker compose up -d sentinel`. **Startup takes ~40–60s** (GPU detector warmup + 8 cameras reconnecting); `curl localhost:5000/healthz` returns `000` until ready then `200` — poll it, don't assume it crashed. "detector batch channel full — dropping batch" spam during warmup is normal/transient (0 in steady state).
+- **Go source:** edit → `go build ./...` → `docker compose build sentinel && docker compose up -d sentinel`. **Startup takes ~40–60s** (GPU detector warmup + 8 cameras reconnecting); `curl localhost:5000/healthz` returns `000` until ready then `200` — poll it, don't assume it crashed. "detector batch channel full — dropping batch" spam during warmup is normal/transient (0 in steady state).
 - **Frontend:** source is **on the laptop** at `web/` (Vite + Svelte 5 runes + Tailwind). Vite `outDir: '../internal/api/webdist'`, `emptyOutDir:true` → `npm run build` writes straight into `internal/api/webdist`, which the Go binary serves via `//go:embed webdist`. Deploy: build on laptop → `rm -rf` NAS `internal/api/webdist` → `pscp -r` laptop webdist → NAS → `docker compose build sentinel && up -d`. (Clear first — an old build once left a stray nested `webdist/webdist`.) App uses **hash routing** (`#/recordings`) so the plain file server needs no SPA fallback.
 
 ### Dockerfile (multi-stage, CGO + CUDA)

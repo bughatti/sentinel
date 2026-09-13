@@ -29,9 +29,9 @@ services:
   # deepstream detector backend connects to for GPU-accelerated
   # multi-stream inference.
   #
-  # Build: see https://github.com/sentinel-nvr/deepstream-bridge
+  # Build your own DeepStream bridge image; no prebuilt image is published yet.
   deepstream:
-    image: sentinel-nvr/deepstream-bridge:latest
+    image: deepstream-bridge:latest
     container_name: sentinel-deepstream
     restart: unless-stopped
     runtime: nvidia

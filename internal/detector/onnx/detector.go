@@ -15,8 +15,8 @@ import (
 
 	ort "github.com/yalue/onnxruntime_go"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	det "github.com/sentinel-nvr/sentinel/internal/detector"
+	"github.com/bughatti/sentinel/internal/camera"
+	det "github.com/bughatti/sentinel/internal/detector"
 )
 
 // Detector is a YOLOv8/v9 (anchor-free, [1,84,8400] output) object detector

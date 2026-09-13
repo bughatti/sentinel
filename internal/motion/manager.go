@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	"github.com/sentinel-nvr/sentinel/internal/config"
-	"github.com/sentinel-nvr/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/events"
 )
 
 // interval is a half-open time window [start, end) during which motion was seen.

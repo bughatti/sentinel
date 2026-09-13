@@ -3,7 +3,7 @@ package face
 import (
 	"image"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/camera"
 )
 
 // frameSampler returns a bilinear RGB sampler over a BGR24 camera frame.

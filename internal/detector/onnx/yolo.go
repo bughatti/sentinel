@@ -6,7 +6,7 @@ import (
 	"image"
 	"sort"
 
-	"github.com/sentinel-nvr/sentinel/internal/detector"
+	"github.com/bughatti/sentinel/internal/detector"
 )
 
 // yoloDet is an intermediate detection used during NMS.

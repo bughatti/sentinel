@@ -10,7 +10,9 @@ database:
   # PostgreSQL connection string. Use pgvector-enabled Postgres for
   # face recognition. The postgres service in docker-compose.yml
   # satisfies this requirement.
-  url: "postgresql://sentinel:sentinel@postgres:5432/sentinel?sslmode=disable"
+  # Must match POSTGRES_PASSWORD in your .env file — the config file is read
+  # literally and does not expand environment variables.
+  url: "postgresql://sentinel:CHANGE_ME@postgres:5432/sentinel?sslmode=disable"
   # Maximum number of open connections in the pool.
   max_conns: 10
 

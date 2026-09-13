@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sentinel-nvr/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/config"
 )
 
 const (

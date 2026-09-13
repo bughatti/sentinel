@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sentinel-nvr/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/events"
 )
 
 // MotionQuerier is satisfied by motion.Manager. Defined here to avoid an

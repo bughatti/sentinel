@@ -1,13 +1,22 @@
 # Sentinel NVR
 
-[![Build](https://github.com/sentinel-nvr/sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/sentinel-nvr/sentinel/actions/workflows/ci.yml)
+[![Build](https://github.com/bughatti/sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/bughatti/sentinel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docker Pulls](https://img.shields.io/docker/pulls/sentinelnvr/sentinel)](https://hub.docker.com/r/sentinelnvr/sentinel)
+[![Container](https://img.shields.io/badge/ghcr.io-bughatti%2Fsentinel-blue)](https://github.com/bughatti/sentinel/pkgs/container/sentinel)
 [![Go Version](https://img.shields.io/badge/Go-1.23-00ADD8.svg)](https://golang.org)
 
 **Sentinel NVR — A high-performance, GPU-accelerated Network Video Recorder built in Go. integration-friendly API, PostgreSQL storage, NVIDIA DeepStream support.**
 
-Sentinel is a drop-in alternative to the reference implementation that trades Python for Go and adds first-class PostgreSQL persistence, pluggable AI backends (ONNX Runtime, NVIDIA DeepStream), and a clean modular architecture designed to scale beyond single-host deployments.
+Sentinel trades Python for Go and adds first-class PostgreSQL persistence, pluggable AI backends (ONNX Runtime, NVIDIA DeepStream), and a modular architecture designed to scale beyond a single host. It follows the reference REST and MQTT conventions closely enough that the reference implementation tooling can talk to it, with the limits described under Project status.
+
+## Project status
+
+Honest state of things, so you can judge whether to run it:
+
+- **In daily use on one deployment**, eight cameras with GPU detection, running continuously.
+- **the reference implementation API compatibility is partial.** The REST API and the `<prefix>/events` and `<prefix>/available` MQTT topics work. Stats and per-camera motion or object-count topics are not published yet.
+- **Test coverage is thin.** The credential redaction and configuration loading paths are covered; most of the pipeline is not. Contributions welcome.
+- **Verified on NVIDIA GPUs and CPU decoding.** The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
 
 ---
 
@@ -37,9 +46,10 @@ Sentinel is a drop-in alternative to the reference implementation that trades Py
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/sentinel-nvr/sentinel.git
+git clone https://github.com/bughatti/sentinel.git
 cd sentinel
 cp deploy/config.example.yaml config.yaml
+cp .env.example .env          # set POSTGRES_PASSWORD; the stack will not start without it
 # Edit config.yaml — set database.url and add your cameras
 ```
 
@@ -110,7 +120,9 @@ Sentinel exposes a integration-friendly REST API so Home Assistant and existing 
 
 ## Home Assistant Integration
 
-Sentinel publishes to the same MQTT topics as the reference implementation (`<prefix>/events`, `<prefix>/{camera}/motion`, etc.). If you already have the reference implementation integrated with Home Assistant, point the the reference implementation integration to Sentinel's API URL and MQTT topics — no other changes needed.
+Sentinel publishes two the published MQTT topics today: `<prefix>/events` (every event, with a the published payload) and `<prefix>/available` (retained online/offline). Point the the reference implementation Home Assistant integration at Sentinel's API URL and MQTT topics and the event stream works.
+
+Be aware of the gap: `<prefix>/stats`, `<prefix>/{camera}/motion` and the per-camera object-count topics are defined in the code but not yet published, so Home Assistant entities that depend on them stay empty. If you rely on those, Sentinel is not yet a drop-in replacement for you.
 
 **In `configuration.yaml`:**
 

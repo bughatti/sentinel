@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/sentinel-nvr/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/events"
 )
 
 var upgrader = websocket.Upgrader{

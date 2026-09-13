@@ -10,8 +10,8 @@ import (
 
 	ort "github.com/yalue/onnxruntime_go"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	"github.com/sentinel-nvr/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/config"
 )
 
 const (

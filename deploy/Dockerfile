@@ -25,7 +25,7 @@ ENV CGO_CFLAGS="-I/opt/ort/include"
 ENV CGO_LDFLAGS="-L/opt/ort/lib -lonnxruntime"
 
 RUN go build \
-    -ldflags="-s -w -X github.com/sentinel-nvr/sentinel/internal/app.Version=${VERSION}" \
+    -ldflags="-s -w -X github.com/bughatti/sentinel/internal/app.Version=${VERSION}" \
     -o /build/sentinel \
     ./cmd/sentinel
 

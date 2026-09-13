@@ -6,7 +6,7 @@ import (
 	"context"
 	"image"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/camera"
 )
 
 // Detection is the output of an object detector for one detected object.

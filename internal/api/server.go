@@ -12,10 +12,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/sentinel-nvr/sentinel/internal/config"
-	"github.com/sentinel-nvr/sentinel/internal/db"
-	"github.com/sentinel-nvr/sentinel/internal/events"
-	"github.com/sentinel-nvr/sentinel/internal/storage"
+	"github.com/bughatti/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/db"
+	"github.com/bughatti/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/storage"
 )
 
 //go:embed webdist

@@ -10,8 +10,8 @@ import (
 	"errors"
 	"image"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	"github.com/sentinel-nvr/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/config"
 )
 
 // ErrDisabled is returned when an operation needs an active recognizer.

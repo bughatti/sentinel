@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/sentinel-nvr/sentinel/internal/db"
+	"github.com/bughatti/sentinel/internal/db"
 )
 
 // Store wraps a *db.DB and provides high-level event/recording persistence.

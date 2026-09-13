@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: sentinel
-      POSTGRES_PASSWORD: sentinel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: sentinel
     volumes:
       - postgres_data:/var/lib/postgresql/data

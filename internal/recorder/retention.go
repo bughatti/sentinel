@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/sentinel-nvr/sentinel/internal/config"
-	"github.com/sentinel-nvr/sentinel/internal/events"
-	"github.com/sentinel-nvr/sentinel/internal/storage"
+	"github.com/bughatti/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/storage"
 )
 
 // RetentionManager deletes old recording segments AND old events (with their

@@ -5,7 +5,7 @@ package face
 import (
 	"log/slog"
 
-	"github.com/sentinel-nvr/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/config"
 )
 
 // New returns the no-op recognizer in non-CGO builds (no ONNX Runtime).

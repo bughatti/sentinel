@@ -6,7 +6,7 @@ import (
 	"time"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
-	"github.com/sentinel-nvr/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/config"
 )
 
 // Client wraps a Paho MQTT client with auto-reconnect and a Last Will &

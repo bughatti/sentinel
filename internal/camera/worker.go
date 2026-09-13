@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sentinel-nvr/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/config"
 )
 
 // BatchItem is the unit sent from a CameraWorker to the shared fanin channel.

@@ -7,7 +7,7 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/camera"
 	"golang.org/x/image/draw"
 )
 

@@ -12,9 +12,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	"github.com/sentinel-nvr/sentinel/internal/events"
-	"github.com/sentinel-nvr/sentinel/internal/storage"
+	"github.com/bughatti/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/storage"
 )
 
 // Saver saves JPEG snapshots to disk and updates the events table.

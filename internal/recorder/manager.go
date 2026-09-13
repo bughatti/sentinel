@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/sentinel-nvr/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/events"
 )
 
 // Manager owns one Recorder goroutine per camera plus a shared segment

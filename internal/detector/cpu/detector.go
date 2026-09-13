@@ -9,8 +9,8 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	"github.com/sentinel-nvr/sentinel/internal/detector"
+	"github.com/bughatti/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/detector"
 )
 
 // Detector is the no-op CPU fallback.

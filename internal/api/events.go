@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sentinel-nvr/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/events"
 )
 
 // handleListEvents — GET /api/events

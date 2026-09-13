@@ -44,3 +44,11 @@ Thumbs.db
 node_modules/
 /web/dist/
 deploy/go2rtc.yaml
+
+# real per-install files and build output (never publish)
+config.yaml.bak*
+config.yaml.pre-*
+docker-compose.yml.pre-*
+*.pre-*-bak
+/sentinel
+/sentinel_test

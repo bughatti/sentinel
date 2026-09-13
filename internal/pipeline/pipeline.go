@@ -14,13 +14,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sentinel-nvr/sentinel/internal/camera"
-	"github.com/sentinel-nvr/sentinel/internal/config"
-	"github.com/sentinel-nvr/sentinel/internal/detector"
-	"github.com/sentinel-nvr/sentinel/internal/events"
-	"github.com/sentinel-nvr/sentinel/internal/face"
-	"github.com/sentinel-nvr/sentinel/internal/snapshot"
-	"github.com/sentinel-nvr/sentinel/internal/storage"
+	"github.com/bughatti/sentinel/internal/camera"
+	"github.com/bughatti/sentinel/internal/config"
+	"github.com/bughatti/sentinel/internal/detector"
+	"github.com/bughatti/sentinel/internal/events"
+	"github.com/bughatti/sentinel/internal/face"
+	"github.com/bughatti/sentinel/internal/snapshot"
+	"github.com/bughatti/sentinel/internal/storage"
 )
 
 // eventState tracks a single in-progress or recently-ended event.
@@ -459,7 +459,6 @@ func (p *Pipeline) saveClip(id, cam string, startSecs, endSecs float64) {
 	if p.stor == nil {
 		return
 	}
-	ctx := context.Background()
 
 	pre, post := 5.0, 5.0
 	if p.cfg.Record != nil {
@@ -473,6 +472,41 @@ func (p *Pipeline) saveClip(id, cam string, startSecs, endSecs float64) {
 	from := startSecs - pre
 	to := endSecs + post
 
+	// The recording segment covering `to` is still being written when the event ends:
+	// ffmpeg writes an mp4's moov index only when a segment CLOSES (rolls over every
+	// segment_duration), so concatenating that unfinalized file fails with "moov atom
+	// not found" — which was silently dropping the clip for the majority of events.
+	// Wait until the trailing segment has rolled over + finalized, then extract, with a
+	// couple of retries as a safety net for rollover-timing jitter.
+	segDur := 10.0
+	if p.cfg.Record != nil && p.cfg.Record.SegmentDuration > 0 {
+		segDur = float64(p.cfg.Record.SegmentDuration)
+	}
+	if wait := time.Until(time.Unix(int64(to), 0).Add(time.Duration(segDur+2) * time.Second)); wait > 0 {
+		time.Sleep(wait)
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		if attempt > 1 {
+			time.Sleep(time.Duration(segDur) * time.Second / 2)
+		}
+		n, err := p.extractClip(id, cam, from, to)
+		if err == nil {
+			slog.Info("event clip saved", "id", id, "camera", cam, "segments", n, "attempt", attempt)
+			return
+		}
+		lastErr = err
+	}
+	slog.Warn("pipeline: clip extraction failed after retries", "id", id, "camera", cam, "err", lastErr)
+}
+
+// extractClip concatenates the recording segments overlapping [from,to] into the
+// event's clip file and sets has_clip. Returns the segment count and any error, so
+// saveClip can retry — a segment may still be finalizing on an early attempt.
+func (p *Pipeline) extractClip(id, cam string, from, to float64) (int, error) {
+	ctx := context.Background()
+
 	// Query a padded window (one segment length either side) then keep only the
 	// segments that actually overlap [from,to] — ListRecordings' filter is
 	// fully-contained, so padding catches the boundary segments.
@@ -481,8 +515,7 @@ func (p *Pipeline) saveClip(id, cam string, startSecs, endSecs float64) {
 		Camera: cam, After: &qa, Before: &qb, Limit: 2000,
 	})
 	if err != nil {
-		slog.Warn("pipeline: clip list recordings", "err", err, "id", id)
-		return
+		return 0, fmt.Errorf("list recordings: %w", err)
 	}
 	var segs []*events.Recording
 	for _, r := range recs {
@@ -491,14 +524,12 @@ func (p *Pipeline) saveClip(id, cam string, startSecs, endSecs float64) {
 		}
 	}
 	if len(segs) == 0 {
-		slog.Warn("pipeline: no recording segments for clip", "id", id, "camera", cam)
-		return
+		return 0, fmt.Errorf("no recording segments")
 	}
 
 	lf, err := os.CreateTemp("", "sentinel-clip-*.txt")
 	if err != nil {
-		slog.Warn("pipeline: clip tmp file", "err", err, "id", id)
-		return
+		return 0, fmt.Errorf("tmp file: %w", err)
 	}
 	tmpName := lf.Name()
 	defer os.Remove(tmpName)
@@ -511,32 +542,28 @@ func (p *Pipeline) saveClip(id, cam string, startSecs, endSecs float64) {
 	}
 	if _, err := lf.WriteString(b.String()); err != nil {
 		lf.Close()
-		slog.Warn("pipeline: clip list write", "err", err, "id", id)
-		return
+		return 0, fmt.Errorf("write list: %w", err)
 	}
 	lf.Close()
 
 	clipPath := p.stor.ClipPath(id)
 	if err := os.MkdirAll(filepath.Dir(clipPath), 0o755); err != nil {
-		slog.Warn("pipeline: clip mkdir", "err", err, "id", id)
-		return
+		return 0, fmt.Errorf("mkdir: %w", err)
 	}
 
-	// Stream-copy concat: the clip is the union of the overlapping 10s segments
-	// (event window ± up to one segment). No re-encode — fast and lossless.
+	// Stream-copy concat: the clip is the union of the overlapping segments (event
+	// window ± up to one segment). No re-encode — fast and lossless.
 	cmd := exec.CommandContext(ctx, "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
 		"-f", "concat", "-safe", "0", "-i", tmpName,
 		"-c", "copy", "-movflags", "+faststart", clipPath)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		slog.Warn("pipeline: ffmpeg clip failed", "err", err, "id", id, "ffmpeg", strings.TrimSpace(string(out)))
-		return
+		return len(segs), fmt.Errorf("ffmpeg: %s", strings.TrimSpace(string(out)))
 	}
 
 	if err := p.store.SetHasClip(ctx, id); err != nil {
-		slog.Warn("pipeline: set has_clip", "err", err, "id", id)
-		return
+		return len(segs), fmt.Errorf("set has_clip: %w", err)
 	}
-	slog.Info("event clip saved", "id", id, "camera", cam, "segments", len(segs), "path", clipPath)
+	return len(segs), nil
 }
 
 func (p *Pipeline) isTracked(label string) bool {

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/sentinel-nvr/sentinel/internal/config"
-	det "github.com/sentinel-nvr/sentinel/internal/detector"
-	cpudet "github.com/sentinel-nvr/sentinel/internal/detector/cpu"
-	onnxdet "github.com/sentinel-nvr/sentinel/internal/detector/onnx"
+	"github.com/bughatti/sentinel/internal/config"
+	det "github.com/bughatti/sentinel/internal/detector"
+	cpudet "github.com/bughatti/sentinel/internal/detector/cpu"
+	onnxdet "github.com/bughatti/sentinel/internal/detector/onnx"
 )
 
 // buildDetector creates the configured detection backend (CGO build).
