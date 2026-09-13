@@ -153,7 +153,7 @@ Be aware of the gap: `<prefix>/stats`, `<prefix>/{camera}/motion` and the per-ca
 
 Point your home automation platform's MQTT integration at the same broker and topic prefix Sentinel publishes on.
 
-If you use Home Assistant's Frigate integration, set `topic_prefix: frigate` in your config and point that integration at Sentinel's API URL. It subscribes to topics under that prefix, so the event stream works unchanged. That integration is named after another project, which is why the name appears here and nowhere else in Sentinel.
+The MQTT topic prefix is configurable. Several home automation integrations discover cameras by subscribing to a fixed prefix, so if you already run one, set `topic_prefix` to whatever prefix it expects and point it at Sentinel's API URL. The event stream then works unchanged, with no adapter in between.
 
 ---
 
