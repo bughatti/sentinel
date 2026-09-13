@@ -269,4 +269,4 @@ Cameras inherit global `motion/record/snapshots/objects` when omitted. `Validate
 
 ## 17. Roadmap hooks (home automation integration)
 
-Point Sentinel MQTT at the home automation broker `<homeforge-host>:1885`, add a `<prefix>/#` handler in the platform `internal/mqtt/server.go` → per-camera entities → automations; proxy/embed the `:5000` REST + live/VOD in the the platform UI. Because it's integration-friendly, model the the platform handler on the reference MQTT schema (but note only `<prefix>/events` + `<prefix>/available` are actually published — object-count topics would need to be added to Sentinel first).
+Point Sentinel's MQTT client at your home automation platform's broker and subscribe a `<prefix>/#` handler there to turn events into per-camera entities and automations; the `:5000` REST API plus live and VOD endpoints can be proxied or embedded in that platform's UI. Model the handler on the reference MQTT schema, but note that only `<prefix>/events` and `<prefix>/available` are actually published today — per-camera object-count topics would need to be added to Sentinel first.
