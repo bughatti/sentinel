@@ -55,3 +55,13 @@ docker-compose.yml.pre-*
 # detector models: large, and not ours to redistribute
 deploy/models/*
 !deploy/models/README.md
+
+# Local deployment leftovers. These live beside a real install and carry real
+# values: the root compose sets POSTGRES_PASSWORD, and *.bak- copies of broker
+# configs have contained a bridge address and remote_password. None belongs in
+# a public repository. deploy/docker-compose.yml is the shipped one and stays
+# tracked; this rule is anchored to the repository root.
+/docker-compose.yml
+deploy/Dockerfile.run
+*.bak-*
+*.bak
