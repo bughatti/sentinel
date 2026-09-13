@@ -51,10 +51,10 @@ type CameraWorker struct {
 	// MotionCh receives one signal per processed frame; used by motion.Manager.
 	MotionCh chan MotionSignal
 
-	mu         sync.Mutex
-	cancel     context.CancelFunc
-	wg         sync.WaitGroup
-	running    bool
+	mu      sync.Mutex
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
+	running bool
 
 	// latest JPEG preview frame from the capture stream
 	frameMu    sync.RWMutex

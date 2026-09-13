@@ -84,7 +84,7 @@ func New(modelPath, labelPath string, confThreshold float32, numThreads int, inp
 	if err != nil {
 		return nil, fmt.Errorf("onnx: session options: %w", err)
 	}
-	defer opts.Destroy()
+	defer func() { _ = opts.Destroy() }()
 
 	if numThreads > 0 {
 		if err := opts.SetIntraOpNumThreads(numThreads); err != nil {
@@ -110,7 +110,7 @@ func New(modelPath, labelPath string, confThreshold float32, numThreads int, inp
 				"trt_engine_cache_path":   "/tmp/sentinel/trt-cache",
 				"trt_timing_cache_enable": "1",
 			}); err != nil {
-				trtOpts.Destroy()
+				_ = trtOpts.Destroy()
 				return nil, fmt.Errorf("onnx: tensorrt provider update: %w", err)
 			}
 			if err := opts.AppendExecutionProviderTensorRT(trtOpts); err != nil {
@@ -118,14 +118,14 @@ func New(modelPath, labelPath string, confThreshold float32, numThreads int, inp
 			} else {
 				slog.Info("onnx: TensorRT execution provider enabled (fp16, engine cache)", "device", gpuDeviceID)
 			}
-			trtOpts.Destroy()
+			_ = trtOpts.Destroy()
 		}
 
 		cudaOpts, err := ort.NewCUDAProviderOptions()
 		if err != nil {
 			return nil, fmt.Errorf("onnx: cuda provider options: %w", err)
 		}
-		defer cudaOpts.Destroy()
+		defer func() { _ = cudaOpts.Destroy() }()
 		if err := cudaOpts.Update(map[string]string{
 			"device_id": fmt.Sprintf("%d", gpuDeviceID),
 		}); err != nil {
@@ -157,7 +157,7 @@ func New(modelPath, labelPath string, confThreshold float32, numThreads int, inp
 	outputShape := ort.NewShape(int64(batchSize), int64(channels), int64(numAnchors))
 	outputTensor, err := ort.NewEmptyTensor[float32](outputShape)
 	if err != nil {
-		inputTensor.Destroy()
+		_ = inputTensor.Destroy()
 		return nil, fmt.Errorf("onnx: create output tensor: %w", err)
 	}
 	slog.Info("onnx: model io", "input", fmt.Sprintf("%dx%d", inputW, inputH), "batch", batchSize, "classes", numClasses, "anchors", numAnchors)
@@ -171,8 +171,8 @@ func New(modelPath, labelPath string, confThreshold float32, numThreads int, inp
 		opts,
 	)
 	if err != nil {
-		inputTensor.Destroy()
-		outputTensor.Destroy()
+		_ = inputTensor.Destroy()
+		_ = outputTensor.Destroy()
 		return nil, fmt.Errorf("onnx: create session from %s: %w", modelPath, err)
 	}
 
@@ -206,8 +206,8 @@ func (d *Detector) Detect(ctx context.Context, frames []camera.Frame) ([][]det.D
 	defer d.mu.Unlock()
 
 	results := make([][]det.Detection, len(frames))
-	frameStride := 3 * d.inputW * d.inputH   // input floats per frame
-	outStride := d.channels * d.numAnchors   // output floats per frame
+	frameStride := 3 * d.inputW * d.inputH // input floats per frame
+	outStride := d.channels * d.numAnchors // output floats per frame
 	inData := d.inputTensor.GetData()
 	outData := d.outputTensor.GetData()
 
@@ -274,15 +274,15 @@ func (d *Detector) Close() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.session != nil {
-		d.session.Destroy()
+		_ = d.session.Destroy()
 		d.session = nil
 	}
 	if d.inputTensor != nil {
-		d.inputTensor.Destroy()
+		_ = d.inputTensor.Destroy()
 		d.inputTensor = nil
 	}
 	if d.outputTensor != nil {
-		d.outputTensor.Destroy()
+		_ = d.outputTensor.Destroy()
 		d.outputTensor = nil
 	}
 	return nil

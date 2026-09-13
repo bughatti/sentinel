@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/bughatti/sentinel/internal/config"
 	"github.com/bughatti/sentinel/internal/db"
 	"github.com/bughatti/sentinel/internal/events"
 	"github.com/bughatti/sentinel/internal/storage"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 //go:embed webdist
@@ -231,12 +231,12 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			"input_height": c.Detector.ONNX.InputHeight,
 		},
 		"record": map[string]any{
-			"enabled":          c.Record.Enabled,
-			"segment_duration": c.Record.SegmentDuration,
-			"retain_days":      c.Record.Retain.Days,
+			"enabled":           c.Record.Enabled,
+			"segment_duration":  c.Record.SegmentDuration,
+			"retain_days":       c.Record.Retain.Days,
 			"event_retain_days": c.Record.Events.Retain.Days,
-			"pre_capture":      c.Record.Events.PreCapture,
-			"post_capture":     c.Record.Events.PostCapture,
+			"pre_capture":       c.Record.Events.PreCapture,
+			"post_capture":      c.Record.Events.PostCapture,
 		},
 		"snapshots": map[string]any{
 			"enabled": c.Snapshots.Enabled,

@@ -62,10 +62,10 @@ func New(cfg *config.Config) (Recognizer, error) {
 		if cfg.Detector.UseGPU {
 			cudaOpts, err := ort.NewCUDAProviderOptions()
 			if err != nil {
-				opts.Destroy()
+				_ = opts.Destroy()
 				return nil, err
 			}
-			defer cudaOpts.Destroy()
+			defer func() { _ = cudaOpts.Destroy() }()
 			_ = cudaOpts.Update(map[string]string{"device_id": fmt.Sprintf("%d", cfg.Detector.GPUDeviceID)})
 			if err := opts.AppendExecutionProviderCUDA(cudaOpts); err != nil {
 				slog.Warn("face: CUDA provider unavailable, using CPU", "err", err)
@@ -84,7 +84,7 @@ func New(cfg *config.Config) (Recognizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("face: scrfd opts: %w", err)
 	}
-	defer sOpts.Destroy()
+	defer func() { _ = sOpts.Destroy() }()
 
 	scrfdIn, err := ort.NewEmptyTensor[float32](ort.NewShape(1, 3, scrfdInput, scrfdInput))
 	if err != nil {
@@ -118,7 +118,7 @@ func New(cfg *config.Config) (Recognizer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("face: arcface opts: %w", err)
 	}
-	defer aOpts.Destroy()
+	defer func() { _ = aOpts.Destroy() }()
 
 	arcIn, err := ort.NewEmptyTensor[float32](ort.NewShape(1, 3, arcfaceSize, arcfaceSize))
 	if err != nil {
@@ -234,24 +234,24 @@ func (r *onnxRecognizer) EmbedLargestFace(img image.Image) ([]float32, image.Rec
 
 func (r *onnxRecognizer) Close() error {
 	if r.scrfd != nil {
-		r.scrfd.Destroy()
+		_ = r.scrfd.Destroy()
 	}
 	if r.scrfdIn != nil {
-		r.scrfdIn.Destroy()
+		_ = r.scrfdIn.Destroy()
 	}
 	for _, t := range r.scrfdOut {
 		if t != nil {
-			t.Destroy()
+			_ = t.Destroy()
 		}
 	}
 	if r.arc != nil {
-		r.arc.Destroy()
+		_ = r.arc.Destroy()
 	}
 	if r.arcIn != nil {
-		r.arcIn.Destroy()
+		_ = r.arcIn.Destroy()
 	}
 	if r.arcOut != nil {
-		r.arcOut.Destroy()
+		_ = r.arcOut.Destroy()
 	}
 	return nil
 }

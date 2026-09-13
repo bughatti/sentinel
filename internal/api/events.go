@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/bughatti/sentinel/internal/events"
+	"github.com/go-chi/chi/v5"
 )
 
 // handleListEvents — GET /api/events
 // Query params: camera, label, sub_label, after, before, has_clip, has_snapshot,
-//               false_positive, zone, limit, skip
+//
+//	false_positive, zone, limit, skip
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	f := events.EventFilter{

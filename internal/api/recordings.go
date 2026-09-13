@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/bughatti/sentinel/internal/events"
+	"github.com/go-chi/chi/v5"
 )
 
 // handleListRecordings — GET /api/recordings

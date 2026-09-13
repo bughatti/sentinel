@@ -35,8 +35,8 @@ type Region struct {
 // sub-second precision as the reference implementation does.
 type Event struct {
 	// Core identity
-	ID     string `json:"id"`      // "unixtime.shortuuid"
-	Camera string `json:"camera"`
+	ID     string    `json:"id"` // "unixtime.shortuuid"
+	Camera string    `json:"camera"`
 	Type   EventType `json:"type"` // "new" | "update" | "end"
 
 	// Classification
@@ -52,8 +52,8 @@ type Event struct {
 	EndTime   *float64 `json:"end_time"`   // nil until event ends
 
 	// Spatial
-	Box    Box    `json:"box"`
-	Region Region `json:"region"`
+	Box    Box     `json:"box"`
+	Region Region  `json:"region"`
 	Area   float32 `json:"area"` // fraction of frame area
 
 	// Zones
@@ -61,8 +61,8 @@ type Event struct {
 	CurrentZones []string `json:"current_zones"`
 
 	// Media
-	HasClip      bool `json:"has_clip"`
-	HasSnapshot  bool `json:"has_snapshot"`
+	HasClip     bool `json:"has_clip"`
+	HasSnapshot bool `json:"has_snapshot"`
 
 	// Retention
 	RetainIndefinitely bool `json:"retain_indefinitely"`
@@ -96,11 +96,11 @@ type Recording struct {
 
 // RecordingSummary is returned by the summary endpoint.
 type RecordingSummary struct {
-	Day      string  `json:"day"`       // "YYYY-MM-DD"
+	Day      string  `json:"day"` // "YYYY-MM-DD"
 	Camera   string  `json:"camera"`
-	Duration float32 `json:"duration"`  // total recorded seconds that day
-	Motion   float32 `json:"motion"`    // seconds with motion
-	Objects  float32 `json:"objects"`   // seconds with detected objects
+	Duration float32 `json:"duration"` // total recorded seconds that day
+	Motion   float32 `json:"motion"`   // seconds with motion
+	Objects  float32 `json:"objects"`  // seconds with detected objects
 }
 
 // EventFilter is passed to store.ListEvents.
@@ -120,10 +120,10 @@ type EventFilter struct {
 
 // RecordingFilter is passed to store.ListRecordings.
 type RecordingFilter struct {
-	Camera    string
-	After     *float64
-	Before    *float64
-	Motion    *bool
-	Limit     int
-	Skip      int
+	Camera string
+	After  *float64
+	Before *float64
+	Motion *bool
+	Limit  int
+	Skip   int
 }

@@ -55,7 +55,9 @@ func (s *LocalStorage) EnsureDirs() error {
 
 // RecordingPath returns the full path for a recording segment. The layout
 // matches what the camera worker's ffmpeg segmenter actually writes:
-//   <recordingsDir>/<camera>/<YYYY-MM-DD>/<HH>/<MM><SS>.mp4
+//
+//	<recordingsDir>/<camera>/<YYYY-MM-DD>/<HH>/<MM><SS>.mp4
+//
 // The segment directory is created automatically.
 func (s *LocalStorage) RecordingPath(camera string, t time.Time) string {
 	dir := filepath.Join(

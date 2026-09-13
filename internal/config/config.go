@@ -13,19 +13,19 @@ import (
 
 // SentinelConfig is the top-level configuration structure.
 type SentinelConfig struct {
-	Database        DatabaseConfig                `yaml:"database"`
-	MQTT            MQTTConfig                   `yaml:"mqtt"`
-	Detector        DetectorConfig               `yaml:"detector"`
-	Objects         ObjectsConfig                `yaml:"objects"`
-	Motion          MotionConfig                 `yaml:"motion"`
-	Record          RecordConfig                 `yaml:"record"`
-	Snapshots       SnapshotsConfig              `yaml:"snapshots"`
-	FaceRecognition FaceRecognitionConfig        `yaml:"face_recognition"`
-	Storage         StorageConfig                `yaml:"storage"`
-	API             APIConfig                    `yaml:"api"`
-	Cameras         map[string]CameraConfig      `yaml:"cameras"`
-	Go2RTC          Go2RTCConfig                 `yaml:"go2rtc"`
-	LogLevel        string                       `yaml:"log_level"`
+	Database        DatabaseConfig          `yaml:"database"`
+	MQTT            MQTTConfig              `yaml:"mqtt"`
+	Detector        DetectorConfig          `yaml:"detector"`
+	Objects         ObjectsConfig           `yaml:"objects"`
+	Motion          MotionConfig            `yaml:"motion"`
+	Record          RecordConfig            `yaml:"record"`
+	Snapshots       SnapshotsConfig         `yaml:"snapshots"`
+	FaceRecognition FaceRecognitionConfig   `yaml:"face_recognition"`
+	Storage         StorageConfig           `yaml:"storage"`
+	API             APIConfig               `yaml:"api"`
+	Cameras         map[string]CameraConfig `yaml:"cameras"`
+	Go2RTC          Go2RTCConfig            `yaml:"go2rtc"`
+	LogLevel        string                  `yaml:"log_level"`
 }
 
 // DatabaseConfig holds PostgreSQL connection parameters.
@@ -70,34 +70,34 @@ type ONNXConfig struct {
 
 // DeepStreamConfig holds NVIDIA DeepStream bridge parameters.
 type DeepStreamConfig struct {
-	GRPCAddr    string `yaml:"grpc_addr"`
-	PipelineID  string `yaml:"pipeline_id"`
+	GRPCAddr   string `yaml:"grpc_addr"`
+	PipelineID string `yaml:"pipeline_id"`
 }
 
 // ObjectsConfig holds global object detection defaults.
 type ObjectsConfig struct {
-	Track   []string               `yaml:"track"`
+	Track   []string                `yaml:"track"`
 	Filters map[string]ObjectFilter `yaml:"filters"`
 }
 
 // ObjectFilter defines per-label filtering criteria.
 type ObjectFilter struct {
-	MinArea    float64  `yaml:"min_area"`     // minimum bounding-box area as fraction of frame
-	MaxArea    float64  `yaml:"max_area"`     // maximum bounding-box area as fraction of frame
-	MinScore   float32  `yaml:"min_score"`    // minimum detection confidence
-	MinWidth   int      `yaml:"min_width"`    // minimum pixel width
-	MinHeight  int      `yaml:"min_height"`   // minimum pixel height
-	Mask       [][]int  `yaml:"mask"`         // polygon to exclude, list of [x, y] pairs
+	MinArea   float64 `yaml:"min_area"`   // minimum bounding-box area as fraction of frame
+	MaxArea   float64 `yaml:"max_area"`   // maximum bounding-box area as fraction of frame
+	MinScore  float32 `yaml:"min_score"`  // minimum detection confidence
+	MinWidth  int     `yaml:"min_width"`  // minimum pixel width
+	MinHeight int     `yaml:"min_height"` // minimum pixel height
+	Mask      [][]int `yaml:"mask"`       // polygon to exclude, list of [x, y] pairs
 }
 
 // MotionConfig controls the motion detection algorithm.
 type MotionConfig struct {
-	Enabled          bool    `yaml:"enabled"`
-	Threshold        float64 `yaml:"threshold"`         // pixel difference threshold 0-255
-	Alpha            float64 `yaml:"alpha"`             // background model learning rate 0-1
-	ContourArea      float64 `yaml:"contour_area"`      // minimum contiguous motion area
-	FrameAlpha       float64 `yaml:"frame_alpha"`       // frame smoothing alpha
-	LightningThresh  float64 `yaml:"lightning_thresh"`  // score above which global flash is assumed
+	Enabled         bool    `yaml:"enabled"`
+	Threshold       float64 `yaml:"threshold"`        // pixel difference threshold 0-255
+	Alpha           float64 `yaml:"alpha"`            // background model learning rate 0-1
+	ContourArea     float64 `yaml:"contour_area"`     // minimum contiguous motion area
+	FrameAlpha      float64 `yaml:"frame_alpha"`      // frame smoothing alpha
+	LightningThresh float64 `yaml:"lightning_thresh"` // score above which global flash is assumed
 	// DetectWithoutMotion, when true, sends EVERY captured frame to the object
 	// detector even while motion detection is enabled (motion still produces
 	// motion events + segment annotations). Default false keeps the motion gate,
@@ -108,38 +108,38 @@ type MotionConfig struct {
 
 // RecordConfig controls continuous and event-triggered recording.
 type RecordConfig struct {
-	Enabled          bool            `yaml:"enabled"`
-	Retain           RetentionConfig `yaml:"retain"`
-	Events           EventRecordConfig `yaml:"events"`
-	SegmentDuration  int             `yaml:"segment_duration"` // seconds per segment file
-	OutputPattern    string          `yaml:"output_pattern"`   // strftime-style path pattern
+	Enabled         bool              `yaml:"enabled"`
+	Retain          RetentionConfig   `yaml:"retain"`
+	Events          EventRecordConfig `yaml:"events"`
+	SegmentDuration int               `yaml:"segment_duration"` // seconds per segment file
+	OutputPattern   string            `yaml:"output_pattern"`   // strftime-style path pattern
 }
 
 // RetentionConfig controls how long recordings are kept.
 type RetentionConfig struct {
-	Days   float64 `yaml:"days"`
-	Mode   string  `yaml:"mode"` // "all", "motion", "active_objects"
+	Days float64 `yaml:"days"`
+	Mode string  `yaml:"mode"` // "all", "motion", "active_objects"
 }
 
 // EventRecordConfig controls pre/post recording for detected events.
 type EventRecordConfig struct {
-	PreCapture  int     `yaml:"pre_capture"`  // seconds before event
-	PostCapture int     `yaml:"post_capture"` // seconds after event
+	PreCapture  int             `yaml:"pre_capture"`  // seconds before event
+	PostCapture int             `yaml:"post_capture"` // seconds after event
 	Retain      RetentionConfig `yaml:"retain"`
-	Required    []string `yaml:"required"` // labels that must be present to keep
+	Required    []string        `yaml:"required"` // labels that must be present to keep
 }
 
 // SnapshotsConfig controls snapshot saving for events.
 type SnapshotsConfig struct {
-	Enabled      bool    `yaml:"enabled"`
-	Clean        bool    `yaml:"clean"`     // save without bounding boxes
-	Timestamp    bool    `yaml:"timestamp"` // draw timestamp on snapshot
-	BBoxes       bool    `yaml:"bboxes"`    // draw bounding boxes
-	Crop         bool    `yaml:"crop"`      // save cropped-to-object snapshot
-	Required     bool    `yaml:"required"`  // only save when object in required zone
-	Quality      int     `yaml:"quality"`   // JPEG quality 1-100
-	Height       int     `yaml:"height"`    // output height in pixels (0 = native)
-	RetainDays   float64 `yaml:"retain_days"`
+	Enabled    bool    `yaml:"enabled"`
+	Clean      bool    `yaml:"clean"`     // save without bounding boxes
+	Timestamp  bool    `yaml:"timestamp"` // draw timestamp on snapshot
+	BBoxes     bool    `yaml:"bboxes"`    // draw bounding boxes
+	Crop       bool    `yaml:"crop"`      // save cropped-to-object snapshot
+	Required   bool    `yaml:"required"`  // only save when object in required zone
+	Quality    int     `yaml:"quality"`   // JPEG quality 1-100
+	Height     int     `yaml:"height"`    // output height in pixels (0 = native)
+	RetainDays float64 `yaml:"retain_days"`
 }
 
 // FaceRecognitionConfig enables face embedding and identity lookup.
@@ -163,10 +163,10 @@ type StorageConfig struct {
 
 // APIConfig controls the HTTP API and embedded UI.
 type APIConfig struct {
-	Listen      string `yaml:"listen"`       // host:port
-	AuthEnabled bool   `yaml:"auth_enabled"`
-	APIKey      string `yaml:"api_key"`
-	CORSOrigins []string `yaml:"cors_origins"`
+	Listen      string       `yaml:"listen"` // host:port
+	AuthEnabled bool         `yaml:"auth_enabled"`
+	APIKey      string       `yaml:"api_key"`
+	CORSOrigins []string     `yaml:"cors_origins"`
 	TLS         APITLSConfig `yaml:"tls"`
 }
 
@@ -179,52 +179,52 @@ type APITLSConfig struct {
 
 // CameraConfig holds per-camera settings.
 type CameraConfig struct {
-	Name        string            `yaml:"name"`
-	Enabled     bool              `yaml:"enabled"`
-	FFmpeg      FFmpegConfig      `yaml:"ffmpeg"`
-	Detect      DetectConfig      `yaml:"detect"`
-	Motion      *MotionConfig     `yaml:"motion,omitempty"`
-	Record      *RecordConfig     `yaml:"record,omitempty"`
-	Snapshots   *SnapshotsConfig  `yaml:"snapshots,omitempty"`
-	Objects     *ObjectsConfig    `yaml:"objects,omitempty"`
-	Zones       map[string]ZoneConfig `yaml:"zones"`
-	OnvifHost   string            `yaml:"onvif_host"`
-	OnvifPort   int               `yaml:"onvif_port"`
-	OnvifUser   string            `yaml:"onvif_user"`
-	OnvifPass   string            `yaml:"onvif_pass"`
-	Timestamp   bool              `yaml:"timestamp"`
+	Name      string                `yaml:"name"`
+	Enabled   bool                  `yaml:"enabled"`
+	FFmpeg    FFmpegConfig          `yaml:"ffmpeg"`
+	Detect    DetectConfig          `yaml:"detect"`
+	Motion    *MotionConfig         `yaml:"motion,omitempty"`
+	Record    *RecordConfig         `yaml:"record,omitempty"`
+	Snapshots *SnapshotsConfig      `yaml:"snapshots,omitempty"`
+	Objects   *ObjectsConfig        `yaml:"objects,omitempty"`
+	Zones     map[string]ZoneConfig `yaml:"zones"`
+	OnvifHost string                `yaml:"onvif_host"`
+	OnvifPort int                   `yaml:"onvif_port"`
+	OnvifUser string                `yaml:"onvif_user"`
+	OnvifPass string                `yaml:"onvif_pass"`
+	Timestamp bool                  `yaml:"timestamp"`
 }
 
 // FFmpegConfig holds camera-level FFmpeg stream settings.
 type FFmpegConfig struct {
-	Inputs        []FFmpegInput     `yaml:"inputs"`
-	GlobalArgs    []string          `yaml:"global_args"`
-	HWAccel       string            `yaml:"hwaccel"` // e.g. "cuda", "vaapi", "videotoolbox"
-	HWAccelDevice string            `yaml:"hwaccel_device"`
+	Inputs        []FFmpegInput `yaml:"inputs"`
+	GlobalArgs    []string      `yaml:"global_args"`
+	HWAccel       string        `yaml:"hwaccel"` // e.g. "cuda", "vaapi", "videotoolbox"
+	HWAccelDevice string        `yaml:"hwaccel_device"`
 }
 
 // FFmpegInput describes one input stream and its roles.
 type FFmpegInput struct {
-	Path    string   `yaml:"path"`
-	Roles   []string `yaml:"roles"` // "detect", "record", "clips", "audio"
-	Global  []string `yaml:"global_args"`
+	Path   string   `yaml:"path"`
+	Roles  []string `yaml:"roles"` // "detect", "record", "clips", "audio"
+	Global []string `yaml:"global_args"`
 }
 
 // DetectConfig controls the resolution and rate used for detection.
 type DetectConfig struct {
-	Enabled    bool    `yaml:"enabled"`
-	Width      int     `yaml:"width"`
-	Height     int     `yaml:"height"`
-	FPS        int     `yaml:"fps"`
-	MaxDisapp  int     `yaml:"max_disappeared"` // frames before track is dropped
+	Enabled    bool             `yaml:"enabled"`
+	Width      int              `yaml:"width"`
+	Height     int              `yaml:"height"`
+	FPS        int              `yaml:"fps"`
+	MaxDisapp  int              `yaml:"max_disappeared"` // frames before track is dropped
 	Stationary StationaryConfig `yaml:"stationary"`
 }
 
 // StationaryConfig controls how long a stationary object is re-detected.
 type StationaryConfig struct {
-	Interval    int `yaml:"interval"`  // re-detect every N frames
-	Threshold   int `yaml:"threshold"` // frames before declaring stationary
-	MaxFrames   struct {
+	Interval  int `yaml:"interval"`  // re-detect every N frames
+	Threshold int `yaml:"threshold"` // frames before declaring stationary
+	MaxFrames struct {
 		Default int            `yaml:"default"`
 		Objects map[string]int `yaml:"objects"`
 	} `yaml:"max_frames"`
@@ -232,10 +232,10 @@ type StationaryConfig struct {
 
 // ZoneConfig defines a named region inside a camera frame.
 type ZoneConfig struct {
-	Coordinates string              `yaml:"coordinates"` // "x1,y1,x2,y2,..." comma list
-	Objects     []string            `yaml:"objects"`
+	Coordinates string                  `yaml:"coordinates"` // "x1,y1,x2,y2,..." comma list
+	Objects     []string                `yaml:"objects"`
 	Filters     map[string]ObjectFilter `yaml:"filters"`
-	Inertia     int                 `yaml:"inertia"` // frames object must be in zone to trigger
+	Inertia     int                     `yaml:"inertia"` // frames object must be in zone to trigger
 }
 
 // Go2RTCConfig points to a running go2rtc instance for proxied streams.

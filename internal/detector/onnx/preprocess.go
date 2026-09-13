@@ -89,6 +89,8 @@ func scaleBox(box image.Rectangle, origW, origH, inputW, inputH int) image.Recta
 // preserving aspect ratio, padding with grey. Returns the padded image and
 // (padX, padY) pixel offsets so boxes can be un-padded. Used by callers that
 // need letter-boxed input for accurate box coordinates.
+//
+//nolint:unused // kept for the letter-boxed input path described above; not yet wired to a caller.
 func letterboxImage(src *image.NRGBA, targetW, targetH int) (*image.NRGBA, int, int) {
 	srcW := src.Bounds().Dx()
 	srcH := src.Bounds().Dy()

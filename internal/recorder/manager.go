@@ -12,12 +12,12 @@ import (
 // dispatch goroutine that routes paths from the camera.Manager's aggregate
 // RecordNotifyCh to per-camera recorders.
 type Manager struct {
-	store      *events.Store
-	motion     MotionQuerier
-	recorders  map[string]*Recorder
-	channels   map[string]chan string
-	mu         sync.RWMutex
-	wg         sync.WaitGroup
+	store     *events.Store
+	motion    MotionQuerier
+	recorders map[string]*Recorder
+	channels  map[string]chan string
+	mu        sync.RWMutex
+	wg        sync.WaitGroup
 }
 
 // NewManager creates a recording Manager. motion may be nil to disable motion

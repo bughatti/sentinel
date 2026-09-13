@@ -69,7 +69,7 @@ func (p *Publisher) PublishAvailable() {
 // struct.
 func buildEventData(e events.Event) EventData {
 	frameTime := e.StartTime
-	if e.FrameTime.IsZero() == false {
+	if !e.FrameTime.IsZero() {
 		frameTime = float64(e.FrameTime.UnixMicro()) / 1e6
 	}
 

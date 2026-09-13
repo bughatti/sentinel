@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/bughatti/sentinel/internal/events"
+	"github.com/google/uuid"
 )
 
 // MotionQuerier is satisfied by motion.Manager. Defined here to avoid an

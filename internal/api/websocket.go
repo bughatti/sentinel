@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/bughatti/sentinel/internal/events"
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -23,10 +23,10 @@ var upgrader = websocket.Upgrader{
 
 // wsClient represents one connected WebSocket consumer.
 type wsClient struct {
-	conn     *websocket.Conn
-	send     chan []byte
-	labels   map[string]bool // empty = subscribe to all
-	cameras  map[string]bool // empty = subscribe to all
+	conn    *websocket.Conn
+	send    chan []byte
+	labels  map[string]bool // empty = subscribe to all
+	cameras map[string]bool // empty = subscribe to all
 }
 
 // webSocketHub manages all connected WebSocket clients and fans out events.
@@ -131,9 +131,9 @@ func (h *webSocketHub) readPump(c *wsClient) {
 		c.conn.Close()
 	}()
 
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	_ = c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		_ = c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		return nil
 	})
 	c.conn.SetReadLimit(4096)
@@ -180,9 +180,9 @@ func (h *webSocketHub) writePump(c *wsClient) {
 	for {
 		select {
 		case msg, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
@@ -190,7 +190,7 @@ func (h *webSocketHub) writePump(c *wsClient) {
 			}
 
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

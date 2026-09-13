@@ -5,16 +5,16 @@ import (
 	"log/slog"
 	"time"
 
-	paho "github.com/eclipse/paho.mqtt.golang"
 	"github.com/bughatti/sentinel/internal/config"
+	paho "github.com/eclipse/paho.mqtt.golang"
 )
 
 // Client wraps a Paho MQTT client with auto-reconnect and a Last Will &
 // Testament that publishes "offline" on disconnect.
 type Client struct {
-	paho    paho.Client
-	topics  Topics
-	cfg     config.MQTTConfig
+	paho   paho.Client
+	topics Topics
+	cfg    config.MQTTConfig
 }
 
 // NewClient creates and connects a Paho MQTT client. If the broker is

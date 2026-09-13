@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/bughatti/sentinel/internal/db"
+	"github.com/jackc/pgx/v5"
 )
 
 // Store wraps a *db.DB and provides high-level event/recording persistence.
@@ -245,11 +245,11 @@ func (s *Store) ListEvents(ctx context.Context, f EventFilter) ([]*Event, error)
 // scanEvent scans one row (from QueryRow or Query) into an Event.
 func scanEvent(row pgx.Row) (*Event, error) {
 	var (
-		e         Event
-		subLabel  string
-		boxJSON   []byte
-		regJSON   []byte
-		dataJSON  []byte
+		e        Event
+		subLabel string
+		boxJSON  []byte
+		regJSON  []byte
+		dataJSON []byte
 	)
 	err := row.Scan(
 		&e.ID, &e.Camera, &e.Label, &subLabel, &e.Score, &e.FalsePositive,

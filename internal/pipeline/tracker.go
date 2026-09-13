@@ -10,11 +10,11 @@ var nextTrackID uint64 = 1
 
 // track holds the state of one tracked object.
 type track struct {
-	ID         uint64
-	Label      string
-	Box        image.Rectangle
-	Score      float32
-	Age        int // frames since last matched detection
+	ID          uint64
+	Label       string
+	Box         image.Rectangle
+	Score       float32
+	Age         int // frames since last matched detection
 	TotalFrames int
 }
 

@@ -169,7 +169,7 @@ func buildArcfaceInput(sample rgbSampler, kps [5][2]float32, out []float32) {
 		src[i][0] = float64(kps[i][0])
 		src[i][1] = float64(kps[i][1])
 	}
-	M := umeyama(src)     // src(image) -> dst(112 template)
+	M := umeyama(src)      // src(image) -> dst(112 template)
 	inv := invertAffine(M) // dst(112) -> src(image), for sampling
 	const sz = arcfaceSize
 	plane := sz * sz
@@ -179,9 +179,9 @@ func buildArcfaceInput(sample rgbSampler, kps [5][2]float32, out []float32) {
 			sy := inv[1][0]*float64(u) + inv[1][1]*float64(v) + inv[1][2]
 			r, g, b := sample(sx, sy)
 			idx := v*sz + u
-			out[idx] = (r - 127.5) / 127.5          // R
-			out[plane+idx] = (g - 127.5) / 127.5    // G
-			out[2*plane+idx] = (b - 127.5) / 127.5  // B
+			out[idx] = (r - 127.5) / 127.5         // R
+			out[plane+idx] = (g - 127.5) / 127.5   // G
+			out[2*plane+idx] = (b - 127.5) / 127.5 // B
 		}
 	}
 }

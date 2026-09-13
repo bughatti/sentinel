@@ -16,7 +16,7 @@ const scrfdNumAnchors = 2
 
 // rawFace is a decoded detection in SCRFD input-space (640x640) coordinates.
 type rawFace struct {
-	box   [4]float32   // x1,y1,x2,y2
+	box   [4]float32    // x1,y1,x2,y2
 	kps   [5][2]float32 // 5 landmarks (x,y): left-eye, right-eye, nose, left-mouth, right-mouth
 	score float32
 }

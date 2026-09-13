@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/bughatti/sentinel/internal/camera"
 	"github.com/bughatti/sentinel/internal/config"
 	"github.com/bughatti/sentinel/internal/detector"
@@ -21,6 +20,7 @@ import (
 	"github.com/bughatti/sentinel/internal/face"
 	"github.com/bughatti/sentinel/internal/snapshot"
 	"github.com/bughatti/sentinel/internal/storage"
+	"github.com/google/uuid"
 )
 
 // eventState tracks a single in-progress or recently-ended event.

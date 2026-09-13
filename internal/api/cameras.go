@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/bughatti/sentinel/internal/events"
+	"github.com/go-chi/chi/v5"
 )
 
 // cameraInfo is the response shape for camera endpoints.

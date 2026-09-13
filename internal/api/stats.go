@@ -8,10 +8,10 @@ import (
 
 // statsPayload is the integration-friendly /api/stats response.
 type statsPayload struct {
-	Detection   detectionStats             `json:"detection"`
-	Cameras     map[string]cameraStats     `json:"cameras"`
-	Service     serviceStats               `json:"service"`
-	Timestamp   float64                    `json:"timestamp"`
+	Detection detectionStats         `json:"detection"`
+	Cameras   map[string]cameraStats `json:"cameras"`
+	Service   serviceStats           `json:"service"`
+	Timestamp float64                `json:"timestamp"`
 }
 
 type detectionStats struct {

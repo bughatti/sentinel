@@ -66,7 +66,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          # Pinned: "latest" lets new rules break a build nobody touched.
+          version: v1.64.8
           args: --timeout=5m
 
       - name: Test
