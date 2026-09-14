@@ -19,7 +19,7 @@ Honest state of things, so you can judge whether to run it:
   error in the log naming the file.
 - **MQTT coverage is mostly complete.** Events, availability, per-camera motion and stats can all be published, selected with `mqtt.publish`. Per-camera object-count topics are not published yet.
 - **Test coverage is partial.** Configuration loading and validation, credential redaction in logs, MQTT topic construction, publishing and event payload mapping, the motion state machine, and API authentication are covered. The detection pipeline, storage and recorder are not. Contributions welcome.
-- **Verified on NVIDIA GPUs, and on CPU detection on x86-64.** The arm64 image is built on every release but has not yet been run on real arm64 hardware, so reports from Raspberry Pi or similar boards are welcome. The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
+- **Verified on NVIDIA GPUs, on CPU detection on x86-64, and on a Raspberry Pi 4.** On a 4 GB Pi 4 running 64-bit Raspberry Pi OS, the arm64 build ran the YOLOv8n model at 640×640 at about 0.5 seconds per detection on four threads, using under 100 MB of memory, and its output matched the x86-64 result. That is enough for roughly one camera at a low detection rate, not a multi-camera setup. The DeepStream backend is implemented but has had far less exercise than the ONNX Runtime path.
 
 ---
 
@@ -83,7 +83,7 @@ from `deploy/`.
 
 | Your hardware | Image tag | Download | Detection runs on |
 |---|---|---|---|
-| No NVIDIA GPU: CPU only, AMD, Intel, Raspberry Pi and other arm64 | `latest-cpu` | about 220 MB | CPU |
+| No NVIDIA GPU: CPU only, AMD, Intel, Raspberry Pi 4 or 5 on 64-bit OS, other arm64 | `latest-cpu` | about 220 MB | CPU |
 | NVIDIA GPU | `latest` | about 4.6 GB | GPU, with CUDA and TensorRT |
 
 **Any machine, CPU detection** (amd64 or arm64):
