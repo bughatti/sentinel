@@ -69,7 +69,7 @@ RUN set -eux; \
 
 # Same base distribution as the NVIDIA image, so both ship the same FFmpeg
 # major version and behave the same way on the same camera streams.
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 # mesa-va-drivers provides VAAPI decoding for AMD (and older Intel) GPUs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
