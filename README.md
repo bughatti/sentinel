@@ -3,7 +3,7 @@
 [![Build](https://github.com/bughatti/sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/bughatti/sentinel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Container](https://img.shields.io/badge/ghcr.io-bughatti%2Fsentinel-blue)](https://github.com/bughatti/sentinel/pkgs/container/sentinel)
-[![Go Version](https://img.shields.io/badge/Go-1.23-00ADD8.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8.svg)](https://golang.org)
 
 **Sentinel NVR — A high-performance, GPU-accelerated Network Video Recorder built in Go. REST API, PostgreSQL storage, NVIDIA DeepStream support.**
 
