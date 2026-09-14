@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -173,11 +174,15 @@ type StorageConfig struct {
 
 // APIConfig controls the HTTP API and embedded UI.
 type APIConfig struct {
-	Listen      string       `yaml:"listen"` // host:port
-	AuthEnabled bool         `yaml:"auth_enabled"`
-	APIKey      string       `yaml:"api_key"`
-	CORSOrigins []string     `yaml:"cors_origins"`
-	TLS         APITLSConfig `yaml:"tls"`
+	Listen      string   `yaml:"listen"` // host:port
+	AuthEnabled bool     `yaml:"auth_enabled"`
+	APIKey      string   `yaml:"api_key"`
+	CORSOrigins []string `yaml:"cors_origins"`
+	// TrustedClients are IPs or CIDR ranges that skip the API key and the
+	// WebSocket origin check, for a reverse proxy with its own login in front
+	// of Sentinel. Matched against the TCP peer address only.
+	TrustedClients []string     `yaml:"trusted_clients"`
+	TLS            APITLSConfig `yaml:"tls"`
 }
 
 // APITLSConfig optionally enables HTTPS on the API server.
@@ -426,6 +431,20 @@ func (c *Config) Validate() error {
 		}
 		if cam.Detect.FPS <= 0 {
 			errs = append(errs, fmt.Sprintf("camera %q: detect.fps must be > 0", name))
+		}
+	}
+
+	for _, e := range c.API.TrustedClients {
+		e = strings.TrimSpace(e)
+		if e == "" {
+			continue
+		}
+		if strings.Contains(e, "/") {
+			if _, _, err := net.ParseCIDR(e); err != nil {
+				errs = append(errs, fmt.Sprintf("api.trusted_clients: %q is not an IP address or CIDR range", e))
+			}
+		} else if net.ParseIP(e) == nil {
+			errs = append(errs, fmt.Sprintf("api.trusted_clients: %q is not an IP address or CIDR range", e))
 		}
 	}
 

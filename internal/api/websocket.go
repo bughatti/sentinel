@@ -20,7 +20,7 @@ import (
 // the live event stream. Same-origin pages (the embedded dashboard) are always
 // allowed, as are clients that send no Origin (non-browser tools). Other pages
 // must be listed in api.cors_origins; listing "*" deliberately allows any.
-func allowedOrigin(corsOrigins []string) func(r *http.Request) bool {
+func allowedOrigin(corsOrigins []string, trusted trustedNets) func(r *http.Request) bool {
 	allowAll := false
 	allowed := make(map[string]bool, len(corsOrigins))
 	for _, o := range corsOrigins {
@@ -31,7 +31,9 @@ func allowedOrigin(corsOrigins []string) func(r *http.Request) bool {
 	}
 	return func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
-		if origin == "" || allowAll {
+		// A trusted reverse proxy forwards its own users' Origin header, which
+		// will not match Sentinel's host; the proxy has already vetted them.
+		if origin == "" || allowAll || trusted.trusts(r) {
 			return true
 		}
 		u, err := url.Parse(origin)
@@ -64,7 +66,7 @@ type webSocketHub struct {
 
 func newWebSocketHub(bus *events.EventBus) *webSocketHub {
 	return &webSocketHub{
-		checkOrigin: allowedOrigin(nil),
+		checkOrigin: allowedOrigin(nil, nil),
 		bus:         bus,
 		clients:     make(map[*wsClient]struct{}),
 		register:    make(chan *wsClient, 16),

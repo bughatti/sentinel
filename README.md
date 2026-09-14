@@ -220,6 +220,13 @@ api:
   their segments.
 - **Always public:** the dashboard page itself and `/healthz`.
 
+**A proxy with its own login.** If another service embeds Sentinel behind its
+own authentication, such as a home dashboard that reverse-proxies the NVR,
+list that service's address under `api.trusted_clients` (single IPs or CIDR
+ranges). Requests from it skip the key and the WebSocket origin check, so auth
+can stay on without breaking it. Trust is based on the connecting IP address
+only; `X-Forwarded-For` and similar headers are ignored.
+
 **Browser access from other sites.** Browsers let any website try to call
 services on your network. Sentinel only lets its own dashboard read the API and
 open the live event WebSocket. To allow another web app, list its address under

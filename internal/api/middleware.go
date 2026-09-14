@@ -91,10 +91,10 @@ func corsMiddleware(origins []string) func(http.Handler) http.Handler {
 
 // authMiddleware enforces Bearer token authentication when apiKey is non-empty.
 // The path /api/ws (WebSocket) is excluded so browser clients can connect.
-func authMiddleware(apiKey string) func(http.Handler) http.Handler {
+func authMiddleware(apiKey string, trusted trustedNets) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if apiKey == "" {
+			if apiKey == "" || trusted.trusts(r) {
 				next.ServeHTTP(w, r)
 				return
 			}

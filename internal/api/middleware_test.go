@@ -28,7 +28,7 @@ func TestAuthMiddleware(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			h := authMiddleware(c.key)(http.HandlerFunc(ok))
+			h := authMiddleware(c.key, nil)(http.HandlerFunc(ok))
 			url := c.path
 			if c.query != "" {
 				url += "?api_key=" + c.query

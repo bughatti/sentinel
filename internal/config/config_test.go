@@ -80,6 +80,7 @@ func TestValidationRejects(t *testing.T) {
 		{"zero detect fps", strings.Replace(validConfig, "fps: 5", "fps: 0", 1), "detect.fps"},
 		{"bad log level", strings.Replace(validConfig, `log_level: "info"`, `log_level: "chatty"`, 1), "log_level"},
 		{"auth without key", validConfig + "api:\n  auth_enabled: true\n", "api.api_key"},
+		{"malformed trusted client", validConfig + "api:\n  trusted_clients: [\"10.0.0.300\"]\n", "api.trusted_clients"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -100,5 +101,16 @@ func TestLogLevelAccepted(t *testing.T) {
 		if _, err := Load(write(t, body)); err != nil {
 			t.Errorf("log level %q should be accepted: %v", lvl, err)
 		}
+	}
+}
+
+// A valid trusted_clients list, IPs and ranges, must load.
+func TestTrustedClientsAccepted(t *testing.T) {
+	c, err := Load(write(t, validConfig+"api:\n  trusted_clients: [\"192.0.2.5\", \"198.51.100.0/24\", \"2001:db8::1\"]\n"))
+	if err != nil {
+		t.Fatalf("valid trusted_clients rejected: %v", err)
+	}
+	if len(c.API.TrustedClients) != 3 {
+		t.Errorf("got %d trusted clients, want 3", len(c.API.TrustedClients))
 	}
 }

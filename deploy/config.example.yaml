@@ -170,6 +170,15 @@ api:
   # cors_origins:
   #   - "https://homeassistant.example.com"
 
+  # Addresses that skip the API key and the WebSocket origin check. Use this
+  # for a reverse proxy that puts its own login in front of Sentinel, such as
+  # a home dashboard embedding the NVR, so auth can stay on without breaking
+  # it. Matched against the connecting IP only; forwarded-for headers are
+  # ignored. Accepts single IPs and CIDR ranges. Leave empty if unsure.
+  trusted_clients: []
+  # trusted_clients:
+  #   - "192.168.1.20"
+
   # TLS (optional — prefer a reverse proxy for TLS termination).
   # tls:
   #   enabled: true

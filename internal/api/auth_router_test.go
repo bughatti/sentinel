@@ -21,6 +21,17 @@ const testKey = "test-key-123"
 // tree holding one recorded segment.
 func newAuthServer(t *testing.T, authOn bool, origins []string) http.Handler {
 	t.Helper()
+	return buildTestServer(t, config.APIConfig{AuthEnabled: authOn, APIKey: testKey, CORSOrigins: origins})
+}
+
+// newAuthServerTrusted is newAuthServer with auth on and a trusted_clients list.
+func newAuthServerTrusted(t *testing.T, trusted []string) http.Handler {
+	t.Helper()
+	return buildTestServer(t, config.APIConfig{AuthEnabled: true, APIKey: testKey, TrustedClients: trusted})
+}
+
+func buildTestServer(t *testing.T, apiCfg config.APIConfig) http.Handler {
+	t.Helper()
 	root := t.TempDir()
 	rec := filepath.Join(root, "recordings")
 	seg := filepath.Join(rec, "drive", "2026-09-13", "14")
@@ -31,7 +42,7 @@ func newAuthServer(t *testing.T, authOn bool, origins []string) http.Handler {
 		t.Fatal(err)
 	}
 	s := &Server{
-		cfg:     config.APIConfig{AuthEnabled: authOn, APIKey: testKey, CORSOrigins: origins},
+		cfg:     apiCfg,
 		bus:     events.NewEventBus(),
 		storage: storage.NewLocalStorage(rec, root, root, root, root),
 		version: "test",
@@ -167,7 +178,7 @@ func TestAllowedOrigin(t *testing.T) {
 		}
 		return r
 	}
-	check := allowedOrigin([]string{"https://home.example/"})
+	check := allowedOrigin([]string{"https://home.example/"}, nil)
 	cases := []struct {
 		name string
 		r    *http.Request
@@ -185,7 +196,7 @@ func TestAllowedOrigin(t *testing.T) {
 			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
 		}
 	}
-	if !allowedOrigin([]string{"*"})(req("nas:5000", "https://anything.example")) {
+	if !allowedOrigin([]string{"*"}, nil)(req("nas:5000", "https://anything.example")) {
 		t.Error(`"*" must allow any origin`)
 	}
 }

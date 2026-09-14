@@ -127,14 +127,21 @@ func (s *Server) buildRouter() chi.Router {
 	// Everything that exposes camera data sits in this group. When auth is on,
 	// it needs the API key. The embedded UI shell below stays public on
 	// purpose: the browser has to load the page before it can ask for a key.
+	// Config validation already rejected malformed entries.
+	trusted, err := parseTrusted(s.cfg.TrustedClients)
+	if err != nil {
+		slog.Error("api: ignoring trusted_clients", "err", err)
+		trusted = nil
+	}
+
 	r.Group(func(r chi.Router) {
 		if s.cfg.AuthEnabled {
-			r.Use(authMiddleware(s.cfg.APIKey))
+			r.Use(authMiddleware(s.cfg.APIKey, trusted))
 		}
 
 		// WebSocket hub.
 		hub := newWebSocketHub(s.bus)
-		hub.checkOrigin = allowedOrigin(s.cfg.CORSOrigins)
+		hub.checkOrigin = allowedOrigin(s.cfg.CORSOrigins, trusted)
 		go hub.run(context.Background())
 		r.Get("/ws", hub.handleWS)
 
