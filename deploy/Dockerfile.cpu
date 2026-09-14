@@ -13,7 +13,7 @@
 # The builder always runs on the machine doing the build and cross-compiles
 # for the target, so an arm64 image builds at native speed on an x86 runner
 # instead of under emulation.
-FROM --platform=$BUILDPLATFORM golang:1.26.8-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1-bookworm AS builder
 
 ARG TARGETARCH
 ARG BUILDARCH
