@@ -1,0 +1,32 @@
+# Dependabot keeps dependencies current. Security fixes are opened as soon as an
+# advisory is published regardless of this schedule, including for the web UI's
+# npm packages; this file adds routine version updates, grouped so they arrive
+# as a few pull requests, not dozens.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /deploy
+    schedule:
+      interval: weekly
+    ignore:
+      # ONNX Runtime's GPU build is compiled against a specific CUDA and cuDNN
+      # major version. Moving the CUDA base image on its own breaks GPU
+      # detection, so it is updated by hand together with ONNX Runtime.
+      - dependency-name: nvidia/cuda
