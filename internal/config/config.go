@@ -375,8 +375,10 @@ func defaults() *Config {
 			TmpDir:        "/tmp/sentinel",
 		},
 		API: APIConfig{
-			Listen:      "0.0.0.0:5000",
-			CORSOrigins: []string{"*"},
+			Listen: "0.0.0.0:5000",
+			// No cross-origin browser access unless listed; the dashboard is
+			// same-origin and needs none. See corsMiddleware.
+			CORSOrigins: nil,
 		},
 		Go2RTC: Go2RTCConfig{
 			URL: "http://localhost:1984",

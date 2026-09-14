@@ -9,8 +9,8 @@ import (
 func ok(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 
 // The real contract: a Bearer token in Authorization, or ?api_key=. The /ws
-// path is deliberately exempt because browsers cannot set headers on a
-// WebSocket upgrade — that hole is intentional, so pin it.
+// path is not exempt: browsers pass the key in the query string instead,
+// because the event stream is as sensitive as the REST API.
 func TestAuthMiddleware(t *testing.T) {
 	cases := []struct {
 		name, key, authHeader, query, path string
@@ -23,7 +23,8 @@ func TestAuthMiddleware(t *testing.T) {
 		{"missing credential rejected", "sekrit", "", "", "/api/events", http.StatusUnauthorized},
 		{"query parameter accepted", "sekrit", "", "sekrit", "/api/events", http.StatusOK},
 		{"wrong query parameter rejected", "sekrit", "", "nope", "/api/events", http.StatusUnauthorized},
-		{"websocket upgrade is exempt by design", "sekrit", "", "", "/ws", http.StatusOK},
+		{"websocket without a key is rejected", "sekrit", "", "", "/ws", http.StatusUnauthorized},
+		{"websocket with the key in the query is accepted", "sekrit", "", "sekrit", "/ws", http.StatusOK},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -71,5 +72,28 @@ func TestCORSMiddleware(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if got := rec.Header().Get("Access-Control-Allow-Origin"); got == "https://evil.test" {
 		t.Error("an unlisted origin must not be echoed back as allowed")
+	}
+}
+
+// An empty origin list must allow no cross-origin reads. It used to mean
+// "allow everyone", which let any website read the API through a browser on
+// the same network. Only an explicit "*" opens it up.
+func TestCORSDefaultsToSameOriginOnly(t *testing.T) {
+	get := func(origins []string, origin string) string {
+		h := corsMiddleware(origins)(http.HandlerFunc(ok))
+		req := httptest.NewRequest(http.MethodGet, "/api/events", nil)
+		req.Header.Set("Origin", origin)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Header().Get("Access-Control-Allow-Origin")
+	}
+	if got := get(nil, "https://evil.test"); got != "" {
+		t.Errorf("empty list: Access-Control-Allow-Origin = %q, want none", got)
+	}
+	if got := get([]string{"*"}, "https://any.test"); got != "https://any.test" {
+		t.Errorf(`explicit "*": got %q, want the origin echoed`, got)
+	}
+	if got := get([]string{"https://home.test/"}, "https://home.test"); got != "https://home.test" {
+		t.Errorf("listed origin with trailing slash: got %q", got)
 	}
 }

@@ -201,6 +201,33 @@ if you enabled it. Those reports are how the untested parts above get filled in.
 
 ---
 
+## Authentication
+
+Sentinel's API has authentication **off by default** so a first install just
+works. Turn it on if anything you do not fully trust can reach port 5000:
+
+```yaml
+api:
+  auth_enabled: true
+  api_key: "paste-a-long-random-key-here"   # openssl rand -hex 32
+```
+
+- **Dashboard.** The page asks for the key once and keeps it in that browser.
+  A wrong or changed key brings the prompt back.
+- **Other clients.** Send `Authorization: Bearer <key>`, or add
+  `?api_key=<key>` where a header is impossible, such as an image tag or a
+  media player. Recording playlists fetched with `?api_key=` pass the key on to
+  their segments.
+- **Always public:** the dashboard page itself and `/healthz`.
+
+**Browser access from other sites.** Browsers let any website try to call
+services on your network. Sentinel only lets its own dashboard read the API and
+open the live event WebSocket. To allow another web app, list its address under
+`api.cors_origins`. `"*"` allows every website and is unsafe without
+authentication.
+
+---
+
 ## API Reference
 
 Sentinel exposes a REST API that existing home automation tooling can consume without changes.

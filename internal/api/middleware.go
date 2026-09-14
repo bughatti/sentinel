@@ -5,6 +5,7 @@ package api
 import (
 	"bufio"
 	"context"
+	"crypto/subtle"
 	"log/slog"
 	"net"
 	"net/http"
@@ -50,19 +51,29 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 // corsMiddleware adds permissive CORS headers. In production callers should
 // pass a whitelist of allowed origins via APIConfig.CORSOrigins.
+// corsMiddleware lets the listed browser origins read API responses from
+// other sites. An empty list allows no cross-origin reads; the embedded
+// dashboard is same-origin and never needs CORS. Only an explicit "*" opens
+// the API to every website, which matters because a page on the internet,
+// loaded in a browser on the same network, could otherwise read camera data.
 func corsMiddleware(origins []string) func(http.Handler) http.Handler {
-	allowAll := len(origins) == 0 || (len(origins) == 1 && origins[0] == "*")
+	allowAll := false
+	for _, o := range origins {
+		if o == "*" {
+			allowAll = true
+		}
+	}
 
 	allowed := make(map[string]bool, len(origins))
 	for _, o := range origins {
-		allowed[strings.ToLower(o)] = true
+		allowed[strings.ToLower(strings.TrimRight(o, "/"))] = true
 	}
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 			if origin != "" {
-				if allowAll || allowed[strings.ToLower(origin)] {
+				if allowAll || allowed[strings.ToLower(strings.TrimRight(origin, "/"))] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 					w.Header().Set("Access-Control-Allow-Headers", "Authorization,Content-Type,X-Request-ID")
@@ -87,18 +98,15 @@ func authMiddleware(apiKey string) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			// Skip auth for WebSocket upgrade (browsers can't set Auth header).
-			if r.URL.Path == "/ws" {
-				next.ServeHTTP(w, r)
-				return
-			}
-			header := r.Header.Get("Authorization")
-			token := strings.TrimPrefix(header, "Bearer ")
+			// A Bearer token in Authorization, or ?api_key= for requests a
+			// browser cannot add headers to: <img>, <video>, HLS segments and
+			// the WebSocket upgrade. The WebSocket is not exempt: it carries
+			// the live event stream, including recognised face names.
+			token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 			if token == "" {
-				// Also accept ?api_key= query param.
 				token = r.URL.Query().Get("api_key")
 			}
-			if token != apiKey {
+			if subtle.ConstantTimeCompare([]byte(token), []byte(apiKey)) != 1 {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}

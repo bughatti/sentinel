@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,13 +14,32 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 4096,
-	CheckOrigin: func(r *http.Request) bool {
-		// Allow all origins. In production scope this to your domain.
-		return true
-	},
+// allowedOrigin decides which pages may open the event WebSocket. Browsers let
+// any website open a WebSocket to any host, so without this check a page on
+// the internet, loaded in a browser on the same network, could subscribe to
+// the live event stream. Same-origin pages (the embedded dashboard) are always
+// allowed, as are clients that send no Origin (non-browser tools). Other pages
+// must be listed in api.cors_origins; listing "*" deliberately allows any.
+func allowedOrigin(corsOrigins []string) func(r *http.Request) bool {
+	allowAll := false
+	allowed := make(map[string]bool, len(corsOrigins))
+	for _, o := range corsOrigins {
+		if o == "*" {
+			allowAll = true
+		}
+		allowed[strings.ToLower(strings.TrimRight(o, "/"))] = true
+	}
+	return func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" || allowAll {
+			return true
+		}
+		u, err := url.Parse(origin)
+		if err == nil && strings.EqualFold(u.Host, r.Host) {
+			return true
+		}
+		return allowed[strings.ToLower(strings.TrimRight(origin, "/"))]
+	}
 }
 
 // wsClient represents one connected WebSocket consumer.
@@ -31,6 +52,9 @@ type wsClient struct {
 
 // webSocketHub manages all connected WebSocket clients and fans out events.
 type webSocketHub struct {
+	// checkOrigin gates the upgrade; see allowedOrigin.
+	checkOrigin func(r *http.Request) bool
+
 	bus      *events.EventBus
 	clients  map[*wsClient]struct{}
 	mu       sync.RWMutex
@@ -40,10 +64,11 @@ type webSocketHub struct {
 
 func newWebSocketHub(bus *events.EventBus) *webSocketHub {
 	return &webSocketHub{
-		bus:      bus,
-		clients:  make(map[*wsClient]struct{}),
-		register: make(chan *wsClient, 16),
-		remove:   make(chan *wsClient, 16),
+		checkOrigin: allowedOrigin(nil),
+		bus:         bus,
+		clients:     make(map[*wsClient]struct{}),
+		register:    make(chan *wsClient, 16),
+		remove:      make(chan *wsClient, 16),
 	}
 }
 
@@ -106,6 +131,11 @@ func (h *webSocketHub) run(ctx context.Context) {
 
 // handleWS upgrades the HTTP connection to WebSocket and starts read/write pumps.
 func (h *webSocketHub) handleWS(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 4096,
+		CheckOrigin:     h.checkOrigin,
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Warn("ws: upgrade failed", "err", err)

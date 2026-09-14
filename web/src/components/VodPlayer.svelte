@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { authFetch } from '../lib/auth'
   /**
    * VOD (recording) player.
    *
@@ -48,7 +49,7 @@
 
     ctrl = new AbortController()
     try {
-      const res = await fetch(url, { signal: ctrl.signal })
+      const res = await authFetch(url, { signal: ctrl.signal })
       if (!res.ok) throw new Error(`playlist ${res.status}`)
       const text = await res.text()
 

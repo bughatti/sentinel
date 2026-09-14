@@ -152,14 +152,23 @@ storage:
 api:
   listen: "0.0.0.0:5000"
 
-  # Enable Bearer token auth. All requests must include:
+  # API key authentication. Strongly recommended if anything you do not
+  # fully trust can reach this port. With it on, the dashboard asks for the
+  # key once and remembers it in that browser. Other clients send
   #   Authorization: Bearer <api_key>
+  # or append ?api_key=<api_key> where headers are impossible. The page
+  # itself and /healthz stay reachable without a key.
+  # Generate a key with:  openssl rand -hex 32
   auth_enabled: false
-  # api_key: "change-me-in-production"
+  # api_key: ""
 
-  # CORS allowed origins. Use ["*"] for open access (dev only).
-  cors_origins:
-    - "*"
+  # Websites allowed to call this API from a browser, and to open the event
+  # WebSocket. The built-in dashboard is always allowed and needs no entry.
+  # Leave empty unless another web app on a different address calls
+  # Sentinel. "*" allows every website, which is unsafe without auth.
+  cors_origins: []
+  # cors_origins:
+  #   - "https://homeassistant.example.com"
 
   # TLS (optional — prefer a reverse proxy for TLS termination).
   # tls:

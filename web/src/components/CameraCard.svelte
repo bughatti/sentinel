@@ -37,7 +37,7 @@
   <div class="relative aspect-video bg-surface-3 overflow-hidden rounded-t-xl">
     {#if !imgError}
       <img
-        src="{latestFrameUrl(camera.name)}?t={Math.floor(tick / 5000)}"
+        src={latestFrameUrl(camera.name, Math.floor(tick / 5000))}
         alt="{camera.name} preview"
         class="absolute inset-0 w-full h-full object-cover"
         onerror={() => (imgError = true)}

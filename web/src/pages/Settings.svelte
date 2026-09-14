@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { authFetch } from '../lib/auth'
   import type { Stats } from '../lib/api'
   import { getStats } from '../lib/api'
   import { formatDuration, formatBytes } from '../lib/utils'
@@ -14,7 +15,7 @@
       error = null
       const [s, c] = await Promise.all([
         getStats(),
-        fetch('/api/config').then(r => r.json()),
+        authFetch('/api/config').then(r => r.json()),
       ])
       stats = s
       config = c

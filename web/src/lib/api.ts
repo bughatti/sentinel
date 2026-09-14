@@ -1,6 +1,8 @@
 // api.ts — typed API client for Sentinel NVR
 // All requests use relative URLs — Go binary serves API + static files from the same origin.
 
+import { authFetch, withKey } from './auth'
+
 const BASE = ''
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -143,7 +145,7 @@ async function get<T>(path: string, params?: Record<string, string | number | bo
       }
     }
   }
-  const res = await fetch(url.toString())
+  const res = await authFetch(url.toString())
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
     throw new Error(`API ${res.status}: ${text}`)
@@ -152,7 +154,7 @@ async function get<T>(path: string, params?: Record<string, string | number | bo
 }
 
 async function post<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(BASE + path, {
+  const res = await authFetch(BASE + path, {
     method: 'POST',
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,
@@ -165,7 +167,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 }
 
 async function del<T>(path: string): Promise<T> {
-  const res = await fetch(BASE + path, { method: 'DELETE' })
+  const res = await authFetch(BASE + path, { method: 'DELETE' })
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
     throw new Error(`API ${res.status}: ${text}`)
@@ -227,21 +229,22 @@ export async function getCameraRecordings(name: string, params?: RecordingsParam
 // ─── URL helpers ──────────────────────────────────────────────────────────────
 
 export function snapshotUrl(eventId: string): string {
-  return `/api/events/${encodeURIComponent(eventId)}/snapshot.jpg`
+  return withKey(`/api/events/${encodeURIComponent(eventId)}/snapshot.jpg`)
 }
 
 export function clipUrl(eventId: string): string {
-  return `/api/events/${encodeURIComponent(eventId)}/clip.mp4`
+  return withKey(`/api/events/${encodeURIComponent(eventId)}/clip.mp4`)
 }
 
-export function latestFrameUrl(cameraName: string): string {
-  return `/api/cameras/${encodeURIComponent(cameraName)}/latest-frame`
+// t is a cache-buster so the browser refetches the frame.
+export function latestFrameUrl(cameraName: string, t?: number): string {
+  return withKey(`/api/cameras/${encodeURIComponent(cameraName)}/latest-frame`, t === undefined ? undefined : { t })
 }
 
 export function vodPlaylistUrl(date: string, hour: number, camera: string): string {
   const [year, month, day] = date.split('-')
   const h = String(hour).padStart(2, '0')
-  return `/vod/${year}-${month}-${day}/${h}/${encodeURIComponent(camera)}/index.m3u8`
+  return withKey(`/vod/${year}-${month}-${day}/${h}/${encodeURIComponent(camera)}/index.m3u8`)
 }
 
 // recordingVideoUrl converts a recording path from the DB into a serveable VOD URL.
@@ -252,7 +255,7 @@ export function recordingVideoUrl(path: string): string {
   if (idx < 0 || parts.length < idx + 5) return ''
   const [, camera, date, hour, file] = parts.slice(idx)
   const [year, month, day] = date.split('-')
-  return `/vod/${year}-${month}-${day}/${hour}/${encodeURIComponent(camera)}/${file}`
+  return withKey(`/vod/${year}-${month}-${day}/${hour}/${encodeURIComponent(camera)}/${file}`)
 }
 
 // ─── Faces ──────────────────────────────────────────────────────────────────

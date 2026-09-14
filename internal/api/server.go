@@ -117,9 +117,6 @@ func (s *Server) buildRouter() chi.Router {
 	r.Use(loggingMiddleware)
 	r.Use(corsMiddleware(s.cfg.CORSOrigins))
 	r.Use(middleware.Recoverer)
-	if s.cfg.AuthEnabled {
-		r.Use(authMiddleware(s.cfg.APIKey))
-	}
 
 	// Health check — unauthenticated.
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -127,49 +124,59 @@ func (s *Server) buildRouter() chi.Router {
 		fmt.Fprint(w, `{"status":"ok"}`)
 	})
 
-	// WebSocket hub.
-	hub := newWebSocketHub(s.bus)
-	go hub.run(context.Background())
-	r.Get("/ws", hub.handleWS)
+	// Everything that exposes camera data sits in this group. When auth is on,
+	// it needs the API key. The embedded UI shell below stays public on
+	// purpose: the browser has to load the page before it can ask for a key.
+	r.Group(func(r chi.Router) {
+		if s.cfg.AuthEnabled {
+			r.Use(authMiddleware(s.cfg.APIKey))
+		}
 
-	// ── REST API ──────────────────────────────────────────────────────────────
-	r.Route("/api", func(r chi.Router) {
-		r.Get("/stats", s.handleStats)
-		r.Get("/version", s.handleVersion)
-		r.Get("/config", s.handleConfig)
+		// WebSocket hub.
+		hub := newWebSocketHub(s.bus)
+		hub.checkOrigin = allowedOrigin(s.cfg.CORSOrigins)
+		go hub.run(context.Background())
+		r.Get("/ws", hub.handleWS)
 
-		// Events.
-		r.Get("/events", s.handleListEvents)
-		r.Get("/events/summary", s.handleEventsSummary)
-		r.Get("/events/{id}", s.handleGetEvent)
-		r.Delete("/events/{id}", s.handleDeleteEvent)
-		r.Post("/events/{id}/false_positive", s.handleFalsePositive)
-		r.Post("/events/{id}/retain", s.handleRetainEvent)
-		r.Get("/events/{id}/snapshot.jpg", s.handleEventSnapshot)
-		r.Get("/events/{id}/clip.mp4", s.handleEventClip)
+		// ── REST API ──────────────────────────────────────────────────────────────
+		r.Route("/api", func(r chi.Router) {
+			r.Get("/stats", s.handleStats)
+			r.Get("/version", s.handleVersion)
+			r.Get("/config", s.handleConfig)
 
-		// Recordings.
-		r.Get("/recordings", s.handleListRecordings)
-		r.Get("/recordings/summary", s.handleRecordingsSummary)
-		r.Get("/cameras/{name}/recordings", s.handleCameraRecordings)
+			// Events.
+			r.Get("/events", s.handleListEvents)
+			r.Get("/events/summary", s.handleEventsSummary)
+			r.Get("/events/{id}", s.handleGetEvent)
+			r.Delete("/events/{id}", s.handleDeleteEvent)
+			r.Post("/events/{id}/false_positive", s.handleFalsePositive)
+			r.Post("/events/{id}/retain", s.handleRetainEvent)
+			r.Get("/events/{id}/snapshot.jpg", s.handleEventSnapshot)
+			r.Get("/events/{id}/clip.mp4", s.handleEventClip)
 
-		// Cameras.
-		r.Get("/cameras", s.handleListCameras)
-		r.Get("/cameras/{name}", s.handleGetCamera)
-		r.Get("/cameras/{name}/latest-frame", s.handleLatestFrame)
+			// Recordings.
+			r.Get("/recordings", s.handleListRecordings)
+			r.Get("/recordings/summary", s.handleRecordingsSummary)
+			r.Get("/cameras/{name}/recordings", s.handleCameraRecordings)
 
-		// Face recognition.
-		r.Get("/faces", s.handleListFaces)
-		r.Post("/faces/enroll", s.handleEnrollFace)
-		r.Delete("/faces/{id}", s.handleDeleteFace)
+			// Cameras.
+			r.Get("/cameras", s.handleListCameras)
+			r.Get("/cameras/{name}", s.handleGetCamera)
+			r.Get("/cameras/{name}/latest-frame", s.handleLatestFrame)
+
+			// Face recognition.
+			r.Get("/faces", s.handleListFaces)
+			r.Post("/faces/enroll", s.handleEnrollFace)
+			r.Delete("/faces/{id}", s.handleDeleteFace)
+		})
+
+		// ── VOD / HLS ─────────────────────────────────────────────────────────────
+		r.Get("/vod/{year}-{month}-{day}/{hour}/{camera}/index.m3u8", s.handleHLSPlaylist)
+		r.Get("/vod/{year}-{month}-{day}/{hour}/{camera}/{segment}", s.handleHLSSegment)
+
+		// ── Clips ─────────────────────────────────────────────────────────────────
+		r.Get("/clips/{file}", s.handleServeClip)
 	})
-
-	// ── VOD / HLS ─────────────────────────────────────────────────────────────
-	r.Get("/vod/{year}-{month}-{day}/{hour}/{camera}/index.m3u8", s.handleHLSPlaylist)
-	r.Get("/vod/{year}-{month}-{day}/{hour}/{camera}/{segment}", s.handleHLSSegment)
-
-	// ── Clips ─────────────────────────────────────────────────────────────────
-	r.Get("/clips/{file}", s.handleServeClip)
 
 	// ── Embedded Web UI ───────────────────────────────────────────────────────
 	webSub, err := fs.Sub(webFS, "webdist")

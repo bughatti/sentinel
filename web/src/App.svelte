@@ -5,6 +5,8 @@
   import Recordings from './pages/Recordings.svelte'
   import Faces from './pages/Faces.svelte'
   import Settings from './pages/Settings.svelte'
+  import KeyPrompt from './components/KeyPrompt.svelte'
+  import { onAuthRequired } from './lib/auth'
   import type { ConnectionState } from './lib/ws'
   import { ws } from './lib/ws'
 
@@ -21,6 +23,7 @@
   let currentRoute: Route = $state(getRoute())
   let wsState: ConnectionState = $state('connecting')
   let newEventCount = $state(0)
+  let needKey = $state(false)
 
   function navigate(route: string) {
     window.location.hash = route
@@ -49,8 +52,12 @@
     })
 
     window.addEventListener('hashchange', handleHashChange)
+    const unsubAuth = onAuthRequired(() => {
+      needKey = true
+    })
 
     return () => {
+      unsubAuth()
       unsubState()
       unsubMsg()
       window.removeEventListener('hashchange', handleHashChange)
@@ -81,3 +88,7 @@
     {/if}
   </main>
 </div>
+
+{#if needKey}
+  <KeyPrompt />
+{/if}

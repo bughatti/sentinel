@@ -1,4 +1,5 @@
 // ws.ts — WebSocket event stream client for Sentinel NVR
+import { withKey } from './auth'
 // Connects to ws://<host>/ws and emits typed events.
 
 import type { SentinelEvent } from './api'
@@ -66,7 +67,8 @@ export class SentinelWS {
   private _connect(): void {
     this._setState('connecting')
     try {
-      this.ws = new WebSocket(this.url)
+      // The upgrade cannot carry headers, so the key rides in the query.
+      this.ws = new WebSocket(withKey(this.url))
     } catch {
       this._scheduleReconnect()
       return

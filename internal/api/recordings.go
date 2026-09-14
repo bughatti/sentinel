@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -141,10 +142,16 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	sb.WriteString("#EXT-X-TARGETDURATION:10\n")
 	sb.WriteString("#EXT-X-MEDIA-SEQUENCE:0\n")
 	sb.WriteString("#EXT-X-PLAYLIST-TYPE:VOD\n")
+	// A player that fetched this playlist with ?api_key= fetches each segment
+	// the same way, so pass the key on. It only echoes what the client sent.
+	keySuffix := ""
+	if k := r.URL.Query().Get("api_key"); k != "" {
+		keySuffix = "?api_key=" + url.QueryEscape(k)
+	}
 	for _, name := range names {
 		sb.WriteString("#EXTINF:10.000,\n")
-		sb.WriteString(fmt.Sprintf("/vod/%s-%s-%s/%s/%s/%s\n",
-			year, month, day, hour, camera, name))
+		fmt.Fprintf(&sb, "/vod/%s-%s-%s/%s/%s/%s%s\n",
+			year, month, day, hour, camera, name, keySuffix)
 	}
 	sb.WriteString("#EXT-X-ENDLIST\n")
 
