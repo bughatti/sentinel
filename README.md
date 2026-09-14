@@ -142,6 +142,65 @@ See [`deploy/config.example.yaml`](deploy/config.example.yaml) for the full anno
 
 ---
 
+## Running on a Raspberry Pi
+
+A Pi can run the whole stack for a single camera: the dashboard, events,
+recordings, and person, car and animal detection. Use the `latest-cpu` image
+and the plain `docker compose up -d` command.
+
+**What has been tested.** On a 4 GB Raspberry Pi 4 with 64-bit Raspberry Pi OS,
+object detection took about 0.5 seconds per frame on four threads, used under
+100 MB of memory, and matched results from an x86-64 machine. Face recognition
+and the full stack running for days have not been tested on a Pi yet.
+
+**Setup that makes it work:**
+
+- **Use a 64-bit OS.** Run `uname -m` on the Pi. It must print `aarch64`; the
+  image will not start on 32-bit Raspberry Pi OS.
+- **Use 4 GB of memory or more.** A Pi 5 has a noticeably faster CPU and more
+  headroom than a Pi 4.
+- **Detect on the camera's low-resolution stream, record the full one.** Most
+  cameras offer a second stream at around 640×360. Motion checks decode the
+  detect stream continuously on the CPU, which is cheap at low resolution and
+  far too heavy at 4K. Recording copies the video without re-encoding it, so
+  the full-resolution stream costs almost nothing to record.
+- **Record to a USB SSD, not the SD card.** Continuous recording wears out SD
+  cards. Put the recording folders and the database volume on the SSD.
+- **Keep the detection rate low.** A `detect.fps` of 5 or less is plenty for one
+  camera. Detection only runs when motion is seen, so a quiet camera costs
+  little.
+
+A single camera set up that way:
+
+```yaml
+cameras:
+  driveway:
+    ffmpeg:
+      inputs:
+        - path: "rtsp://user:pass@192.168.1.100:554/stream2"   # low-res substream
+          roles: [detect]
+        - path: "rtsp://user:pass@192.168.1.100:554/stream1"   # full-res main stream
+          roles: [record]
+    detect:
+      width: 640
+      height: 360
+      fps: 5
+```
+
+Substream paths vary by camera brand, so check your camera's documentation for
+the right one.
+
+**Face recognition on a Pi is untested.** Its models are much heavier than the
+object model, so expect a delay of a second or more before a name appears, and
+leave it off if detection falls behind.
+
+**Tried Sentinel on a Pi or another arm64 board?** Please
+[open an issue](https://github.com/bughatti/sentinel/issues) with the board,
+memory, OS, camera count and what worked, including face recognition timings
+if you enabled it. Those reports are how the untested parts above get filled in.
+
+---
+
 ## API Reference
 
 Sentinel exposes a REST API that existing home automation tooling can consume without changes.
