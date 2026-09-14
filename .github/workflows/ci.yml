@@ -66,11 +66,12 @@ jobs:
         run: go vet ./...
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           # Pinned: "latest" lets new rules break a build nobody touched.
-          version: v1.64.8
-          args: --timeout=5m
+          # v2 is required: v1 releases cannot load a module targeting Go 1.26.
+          # Rules live in .golangci.yml.
+          version: v2.13.2
 
       - name: Test
         env:

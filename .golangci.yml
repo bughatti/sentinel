@@ -1,0 +1,21 @@
+# golangci-lint v2 configuration.
+#
+# This reproduces the checks the project passed under golangci-lint v1's
+# defaults, so the upgrade (needed for Go 1.26) changes the tool, not the bar:
+# the standard linter set, staticcheck's bug and simplification checks, and
+# the usual exclusion for unchecked Close/Remove/print errors. Style-only
+# stylecheck (ST) and quick-fix (QF) suggestions stay off, as they were.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  settings:
+    staticcheck:
+      checks: ["all", "-ST*", "-QF*"]
+  exclusions:
+    presets:
+      - std-error-handling
+      - common-false-positives

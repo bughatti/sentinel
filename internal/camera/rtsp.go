@@ -151,6 +151,7 @@ func (dc *DetectCapture) runOnce(ctx context.Context, seqNum *uint64) error {
 	defer close(watchdogDone)
 
 	buf := make([]byte, frameSize)
+readLoop:
 	for {
 		if ctx.Err() != nil {
 			break
@@ -181,7 +182,8 @@ func (dc *DetectCapture) runOnce(ctx context.Context, seqNum *uint64) error {
 		select {
 		case dc.frameCh <- f:
 		case <-ctx.Done():
-			break
+			// A bare break here would only leave the select; stop reading.
+			break readLoop
 		default:
 			// Drop frame if pipeline is backed up — never block capture.
 		}
