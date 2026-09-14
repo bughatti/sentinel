@@ -34,6 +34,12 @@ func NewLocalStorage(recordingsDir, snapshotsDir, clipsDir, exportsDir, tmpDir s
 	}
 }
 
+// RecordingsDir, SnapshotsDir and ClipsDir return the media roots, so callers
+// that build paths from untrusted input can confirm the result stays inside.
+func (s *LocalStorage) RecordingsDir() string { return s.recordingsDir }
+func (s *LocalStorage) SnapshotsDir() string  { return s.snapshotsDir }
+func (s *LocalStorage) ClipsDir() string      { return s.clipsDir }
+
 // EnsureDirs creates all media directories with 0755 permissions. It is safe
 // to call multiple times.
 func (s *LocalStorage) EnsureDirs() error {

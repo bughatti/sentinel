@@ -162,9 +162,6 @@ func (s *Server) buildRouter() chi.Router {
 		r.Get("/faces", s.handleListFaces)
 		r.Post("/faces/enroll", s.handleEnrollFace)
 		r.Delete("/faces/{id}", s.handleDeleteFace)
-
-		// Notifications proxy.
-		r.Post("/notifications/proxy", s.handleNotificationProxy)
 	})
 
 	// ── VOD / HLS ─────────────────────────────────────────────────────────────

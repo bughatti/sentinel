@@ -6,6 +6,7 @@ import (
 	_ "image/jpeg" // register JPEG decoder
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -47,8 +48,22 @@ func (s *Server) handleEnrollFace(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "event_id is required")
 		return
 	}
+	// The id comes from the request body, so it could otherwise name any .jpg
+	// on disk. Require a plain id for an event that actually exists.
+	if !safeElement(req.EventID) {
+		writeError(w, http.StatusBadRequest, "invalid event_id")
+		return
+	}
+	if _, err := s.store.GetEvent(r.Context(), req.EventID); err != nil {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
 
-	path := s.storage.SnapshotPath(req.EventID)
+	path := filepath.Clean(s.storage.SnapshotPath(req.EventID))
+	if !within(s.storage.SnapshotsDir(), path) {
+		writeError(w, http.StatusBadRequest, "invalid event_id")
+		return
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "snapshot not found for event")

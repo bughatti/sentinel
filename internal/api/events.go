@@ -109,14 +109,22 @@ func (s *Server) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 // handleDeleteEvent — DELETE /api/events/{id}
 func (s *Server) handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if !safeElement(id) {
+		writeError(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
 	if _, err := s.store.GetEvent(r.Context(), id); err != nil {
 		writeError(w, http.StatusNotFound, "event not found")
 		return
 	}
 
-	// Delete media files from disk.
-	_ = os.Remove(filepath.Clean(s.storage.SnapshotPath(id)))
-	_ = os.Remove(filepath.Clean(s.storage.ClipPath(id)))
+	// Delete media files from disk, never anything outside the media roots.
+	if p := filepath.Clean(s.storage.SnapshotPath(id)); within(s.storage.SnapshotsDir(), p) {
+		_ = os.Remove(p)
+	}
+	if p := filepath.Clean(s.storage.ClipPath(id)); within(s.storage.ClipsDir(), p) {
+		_ = os.Remove(p)
+	}
 
 	if err := s.db.Exec(r.Context(), `DELETE FROM events WHERE id=$1`, id); err != nil {
 		writeError(w, http.StatusInternalServerError, "delete event: "+err.Error())
@@ -161,6 +169,10 @@ func (s *Server) handleRetainEvent(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleEventSnapshot(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	path := filepath.Clean(s.storage.SnapshotPath(id))
+	if !safeElement(id) || !within(s.storage.SnapshotsDir(), path) {
+		writeError(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -178,6 +190,10 @@ func (s *Server) handleEventSnapshot(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleEventClip(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	path := filepath.Clean(s.storage.ClipPath(id))
+	if !safeElement(id) || !within(s.storage.ClipsDir(), path) {
+		writeError(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
 
 	f, err := os.Open(path)
 	if err != nil {

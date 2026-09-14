@@ -101,18 +101,20 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	hour := chi.URLParam(r, "hour")
 	camera := chi.URLParam(r, "camera")
 
-	// These become path components — reject traversal.
-	for _, p := range []string{year, month, day, hour, camera} {
-		if strings.Contains(p, "..") || strings.ContainsRune(p, '/') {
-			writeError(w, http.StatusBadRequest, "invalid path parameters")
-			return
-		}
+	// These become path components; see pathsafe.go.
+	if !validRecordingParams(year, month, day, hour, camera) {
+		writeError(w, http.StatusBadRequest, "invalid path parameters")
+		return
 	}
 
 	dir := filepath.Join(
 		s.storage.RecordingDir(camera),
 		fmt.Sprintf("%s-%s-%s", year, month, day), hour,
 	)
+	if !within(s.storage.RecordingsDir(), dir) {
+		writeError(w, http.StatusBadRequest, "invalid path parameters")
+		return
+	}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "no recordings for that hour")
@@ -161,9 +163,12 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	camera := chi.URLParam(r, "camera")
 	segment := chi.URLParam(r, "segment")
 
-	// Security: reject path traversal.
-	if strings.Contains(segment, "..") || strings.ContainsRune(segment, '/') {
-		writeError(w, http.StatusBadRequest, "invalid segment name")
+	// Every parameter becomes a path component, not just the segment name.
+	// Checking only the segment once let hour=".." and camera=".." walk out of
+	// the recordings directory. See pathsafe.go.
+	if !validRecordingParams(year, month, day, hour, camera) ||
+		!safeElement(segment) || !strings.HasSuffix(segment, ".mp4") {
+		writeError(w, http.StatusBadRequest, "invalid segment path")
 		return
 	}
 
@@ -172,6 +177,10 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		s.storage.RecordingDir(camera),
 		fmt.Sprintf("%s-%s-%s", year, month, day), hour, segment,
 	))
+	if !within(s.storage.RecordingsDir(), path) {
+		writeError(w, http.StatusBadRequest, "invalid segment path")
+		return
+	}
 
 	serveFile(w, r, path, "video/mp4")
 }
@@ -179,12 +188,16 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 // handleServeClip — GET /clips/{file}
 func (s *Server) handleServeClip(w http.ResponseWriter, r *http.Request) {
 	file := chi.URLParam(r, "file")
-	if strings.Contains(file, "..") || strings.ContainsRune(file, '/') {
+	id := strings.TrimSuffix(file, ".mp4")
+	if !safeElement(file) || !strings.HasSuffix(file, ".mp4") || !safeElement(id) {
 		writeError(w, http.StatusBadRequest, "invalid file name")
 		return
 	}
-	id := strings.TrimSuffix(file, ".mp4")
 	path := filepath.Clean(s.storage.ClipPath(id))
+	if !within(s.storage.ClipsDir(), path) {
+		writeError(w, http.StatusBadRequest, "invalid file name")
+		return
+	}
 	serveFile(w, r, path, "video/mp4")
 }
 
@@ -210,4 +223,11 @@ func serveFile(w http.ResponseWriter, r *http.Request, path, contentType string)
 
 	w.Header().Set("Content-Type", contentType)
 	http.ServeContent(w, r, fi.Name(), fi.ModTime(), f)
+}
+
+// validRecordingParams checks the components of a /vod URL: a four-digit year,
+// two-digit month, day and hour, and a camera name that is one plain element.
+func validRecordingParams(year, month, day, hour, camera string) bool {
+	return digits(year, 4) && digits(month, 2) && digits(day, 2) && digits(hour, 2) &&
+		safeElement(camera)
 }
