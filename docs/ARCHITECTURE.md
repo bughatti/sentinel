@@ -1,7 +1,7 @@
 # Sentinel NVR — Architecture & Engineering Notes
 
 > Custom Go network video recorder, built as a **drop-in the reference implementation replacement** (integration-friendly REST + MQTT so existing Home Assistant integrations work unmodified). Object detection via ONNX Runtime YOLOv8n on GPU, PostgreSQL+pgvector storage, go2rtc for streams.
-> Module `github.com/bughatti/sentinel` · Go 1.23 (NAS host has 1.26) · MIT.
+> Module `github.com/bughatti/sentinel` · Go 1.23 (NAS host has 1.26) · AGPL-3.0.
 > _Notes compiled 2026-07-26 from a full source read; file:line references are to this repository._
 
 ---

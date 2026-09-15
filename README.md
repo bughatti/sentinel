@@ -1,7 +1,7 @@
 # Sentinel NVR
 
 [![Build](https://github.com/bughatti/sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/bughatti/sentinel/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Container](https://img.shields.io/badge/ghcr.io-bughatti%2Fsentinel-blue)](https://github.com/bughatti/sentinel/pkgs/container/sentinel)
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8.svg)](https://golang.org)
 
@@ -411,7 +411,7 @@ go run ./cmd/sentinel --config config.yaml
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+AGPL-3.0 — see [LICENSE](LICENSE).
 
 ---
 
